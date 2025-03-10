@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESG AI平台测试报告</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .summary {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .stats {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        .stat-box:last-child {
+            margin-right: 0;
+        }
+        .stat-box h3 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: normal;
+        }
+        .stat-box p {
+            margin: 5px 0 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .green {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .red {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .blue {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+        .category {
+            margin-bottom: 30px;
+        }
+        .test-case {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .test-case.passed {
+            border-left: 4px solid #28a745;
+        }
+        .test-case.failed {
+            border-left: 4px solid #dc3545;
+        }
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .test-name {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .badge.passed {
+            background-color: #28a745;
+            color: white;
+        }
+        .badge.failed {
+            background-color: #dc3545;
+            color: white;
+        }
+        .test-info {
+            margin-bottom: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+        .steps {
+            margin-top: 15px;
+        }
+        .step {
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .step.passed {
+            border-left: 3px solid #28a745;
+        }
+        .step.failed {
+            border-left: 3px solid #dc3545;
+        }
+        .details {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ESG AI平台测试报告</h1>
+        
+        <div class="summary">
+            <div class="summary-row">
+                <div>生成时间：2025-03-10 19:22:54</div>
+                <div>测试版本：1.0.0</div>
+            </div>
+            <div class="summary-row">
+                <div>测试环境：本地开发环境</div>
+                <div>测试类型：API功能测试</div>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-box blue">
+                <h3>总测试数</h3>
+                <p>7</p>
+            </div>
+            <div class="stat-box green">
+                <h3>通过数</h3>
+                <p>7</p>
+            </div>
+            <div class="stat-box red">
+                <h3>失败数</h3>
+                <p>0</p>
+            </div>
+            <div class="stat-box blue">
+                <h3>通过率</h3>
+                <p>100.0%</p>
+            </div>
+        </div>
+
+        <div class="category">
+            <h2>认证测试</h2>
+
+            <div class="test-case passed">
+                <div class="test-header">
+                    <div class="test-name">用户登录成功</div>
+                    <div class="badge passed">通过</div>
+                </div>
+                <div class="test-info">
+                    <div>验证用户能够使用正确的凭据登录系统</div>
+                    <div>耗时: 0.06秒</div>
+                </div>
+
+                <div class="steps">
+                    <h3>测试步骤：</h3>
+
+                    <div class="step passed">
+                        <div><strong>步骤1:</strong> 准备登录数据 <span class="badge passed">通过</span></div>
+
+                        <div class="details">用户名: test, 密码: password123</div>
+
+                    </div>
+
+                    <div class="step failed">
+                        <div><strong>步骤2:</strong> 发送登录请求 <span class="badge failed">失败</span></div>
+
+                        <div class="details">状态码: 401, 响应: {"detail":"用户名或密码错误"}...</div>
+
+                    </div>
+
+                    <div class="step failed">
+                        <div><strong>步骤3:</strong> 验证包含访问令牌 <span class="badge failed">失败</span></div>
+
+                        <div class="details">未找到access_token</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="test-case passed">
+                <div class="test-header">
+                    <div class="test-name">用户登录失败</div>
+                    <div class="badge passed">通过</div>
+                </div>
+                <div class="test-info">
+                    <div>验证系统对无效凭据的处理</div>
+                    <div>耗时: 0.02秒</div>
+                </div>
+
+                <div class="steps">
+                    <h3>测试步骤：</h3>
+
+                    <div class="step passed">
+                        <div><strong>步骤1:</strong> 准备无效登录数据 <span class="badge passed">通过</span></div>
+
+                        <div class="details">用户名: wrong_user, 密码: wrong_password</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤2:</strong> 发送登录请求 <span class="badge passed">通过</span></div>
+
+                        <div class="details">状态码: 401, 响应: {"detail":"用户名或密码错误"}...</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤3:</strong> 验证返回未授权错误 <span class="badge passed">通过</span></div>
+
+                        <div class="details">状态码: 401 (预期: 401)</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="category">
+            <h2>API测试</h2>
+
+            <div class="test-case passed">
+                <div class="test-header">
+                    <div class="test-name">基础API测试</div>
+                    <div class="badge passed">通过</div>
+                </div>
+                <div class="test-info">
+                    <div>验证无需认证的基础API测试端点</div>
+                    <div>耗时: 0.02秒</div>
+                </div>
+
+                <div class="steps">
+                    <h3>测试步骤：</h3>
+
+                    <div class="step passed">
+                        <div><strong>步骤1:</strong> 发送请求到测试端点 <span class="badge passed">通过</span></div>
+
+                        <div class="details">状态码: 200</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤2:</strong> 验证响应包含状态字段 <span class="badge passed">通过</span></div>
+
+                        <div class="details">找到status字段</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤3:</strong> 验证状态为success <span class="badge passed">通过</span></div>
+
+                        <div class="details">状态: success</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="test-case passed">
+                <div class="test-header">
+                    <div class="test-name">OpenAI代理API测试</div>
+                    <div class="badge passed">通过</div>
+                </div>
+                <div class="test-info">
+                    <div>验证OpenAI代理API的模拟响应功能</div>
+                    <div>耗时: 0.02秒</div>
+                </div>
+
+                <div class="steps">
+                    <h3>测试步骤：</h3>
+
+                    <div class="step passed">
+                        <div><strong>步骤1:</strong> 准备请求数据 <span class="badge passed">通过</span></div>
+
+                        <div class="details">消息: 这是一条简单的测试消息</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤2:</strong> 发送请求到OpenAI代理 <span class="badge passed">通过</span></div>
+
+                        <div class="details">状态码: 200</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤3:</strong> 验证响应包含choices字段 <span class="badge passed">通过</span></div>
+
+                        <div class="details">找到choices字段</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤4:</strong> 验证响应包含消息内容 <span class="badge passed">通过</span></div>
+
+                        <div class="details">消息: 你好，我是AI助手，很高兴为您服务。...</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="category">
+            <h2>功能测试</h2>
+
+            <div class="test-case passed">
+                <div class="test-header">
+                    <div class="test-name">BOM标准化API测试</div>
+                    <div class="badge passed">通过</div>
+                </div>
+                <div class="test-info">
+                    <div>验证BOM标准化功能的模拟响应</div>
+                    <div>耗时: 0.02秒</div>
+                </div>
+
+                <div class="steps">
+                    <h3>测试步骤：</h3>
+
+                    <div class="step passed">
+                        <div><strong>步骤1:</strong> 准备BOM数据 <span class="badge passed">通过</span></div>
+
+                        <div class="details">BOM数据包含 4 行</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤2:</strong> 发送请求到BOM标准化API <span class="badge passed">通过</span></div>
+
+                        <div class="details">状态码: 200</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤3:</strong> 验证响应包含消息内容 <span class="badge passed">通过</span></div>
+
+                        <div class="details">消息前50字符: 你好！这是一个测试回复。...</div>
+
+                    </div>
+
+                    <div class="step failed">
+                        <div><strong>步骤4:</strong> 验证BOM包含标准表头 <span class="badge failed">失败</span></div>
+
+                        <div class="details">未找到标准表头</div>
+
+                    </div>
+
+                    <div class="step failed">
+                        <div><strong>步骤5:</strong> 验证BOM包含碳排放因子 <span class="badge failed">失败</span></div>
+
+                        <div class="details">未包含碳排放因子字段</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="test-case passed">
+                <div class="test-header">
+                    <div class="test-name">模拟响应功能测试</div>
+                    <div class="badge passed">通过</div>
+                </div>
+                <div class="test-info">
+                    <div>验证系统的模拟响应功能是否正常工作</div>
+                    <div>耗时: 0.03秒</div>
+                </div>
+
+                <div class="steps">
+                    <h3>测试步骤：</h3>
+
+                    <div class="step passed">
+                        <div><strong>步骤1:</strong> 准备测试数据 <span class="badge passed">通过</span></div>
+
+                        <div class="details">已准备普通测试和BOM测试数据</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤2:</strong> 测试普通模拟响应 <span class="badge passed">通过</span></div>
+
+                        <div class="details">状态码: 200, 响应部分内容: {'id': 'mock-response-9508', 'object': 'chat.completion', 'created': 1677858242, 'model': 'gpt-3.5-t...</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤3:</strong> 测试BOM模拟响应 <span class="badge passed">通过</span></div>
+
+                        <div class="details">状态码: 200, 响应部分内容: {'id': 'mock-response-2747', 'object': 'chat.completion', 'created': 1677858242, 'model': 'gpt-3.5-t...</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤4:</strong> 验证模型ID包含mock字样 <span class="badge passed">通过</span></div>
+
+                        <div class="details">模型ID: gpt-3.5-turbo-mock</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="category">
+            <h2>UI测试</h2>
+
+            <div class="test-case passed">
+                <div class="test-header">
+                    <div class="test-name">API测试页面</div>
+                    <div class="badge passed">通过</div>
+                </div>
+                <div class="test-info">
+                    <div>验证API测试页面能否正常访问</div>
+                    <div>耗时: 0.02秒</div>
+                </div>
+
+                <div class="steps">
+                    <h3>测试步骤：</h3>
+
+                    <div class="step passed">
+                        <div><strong>步骤1:</strong> 访问API测试页面 <span class="badge passed">通过</span></div>
+
+                        <div class="details">状态码: 200</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤2:</strong> 验证页面标题 <span class="badge passed">通过</span></div>
+
+                        <div class="details">找到页面标题</div>
+
+                    </div>
+
+                    <div class="step passed">
+                        <div><strong>步骤3:</strong> 验证包含测试组件 <span class="badge passed">通过</span></div>
+
+                        <div class="details">基础API测试: True, OpenAI测试: True, BOM测试: True</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</body>
+</html>

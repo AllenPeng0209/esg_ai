@@ -1,0 +1,136 @@
+.product-node {
+  min-width: 220px;
+}
+
+.product-card {
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  background: white;
+}
+
+/* 状态颜色样式 - 修改为使用背景色 */
+.product-card.status-green {
+  background-color: rgba(82, 196, 26, 0.1); /* 淡绿色背景 */
+  border-color: #52c41a;
+}
+
+.product-card.status-yellow {
+  background-color: rgba(250, 173, 20, 0.1); /* 淡黄色背景 */
+  border-color: #faad14;
+}
+
+.product-card.status-red {
+  background-color: rgba(245, 34, 45, 0.1); /* 淡红色背景 */
+  border-color: #f5222d;
+}
+
+.product-card:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 生命周期阶段颜色标识 */
+.lifecycle-tag {
+  position: absolute;
+  top: -8px;
+  left: 10px;
+  padding: 2px 8px;
+  font-size: 10px;
+  border-radius: 10px;
+  color: white;
+  z-index: 10;
+}
+
+.lifecycle-tag.raw-material {
+  background-color: #1890ff; /* 蓝色 - 原材料获取及预加工 */
+}
+
+.lifecycle-tag.production {
+  background-color: #52c41a; /* 绿色 - 生产制造 */
+}
+
+.lifecycle-tag.distribution {
+  background-color: #722ed1; /* 紫色 - 分销和储存 */
+}
+
+.lifecycle-tag.usage {
+  background-color: #fa8c16; /* 橙色 - 产品使用 */
+}
+
+.lifecycle-tag.disposal {
+  background-color: #eb2f96; /* 粉色 - 废弃处置 */
+}
+
+.product-info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.product-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.status-indicator.未验证 {
+  background-color: #faad14;
+}
+
+.status-indicator.内部验证 {
+  background-color: #1890ff;
+}
+
+.status-indicator.第三方验证 {
+  background-color: #52c41a;
+}
+
+.status-indicator.已认证 {
+  background-color: #52c41a;
+}
+
+/* 完成状态指示器 */
+.status-indicator.完成 {
+  background-color: #52c41a;
+}
+
+/* AI补充状态指示器 */
+.status-indicator.AI补充 {
+  background-color: #faad14;
+}
+
+/* 人工介入状态指示器 */
+.status-indicator.人工介入 {
+  background-color: #f5222d;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+}
+
+/* 不确定性样式 */
+.uncertainty {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed #f0f0f0;
+}
+
+.uncertainty-low {
+  color: #52c41a;
+}
+
+.uncertainty-medium {
+  color: #faad14;
+}
+
+.uncertainty-high {
+  color: #f5222d;
+} 

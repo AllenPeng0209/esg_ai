@@ -1,0 +1,44 @@
+2025-03-10 19:21:30,957 - ESG_AI_Test - INFO - 开始执行ESG AI平台自动化测试...
+2025-03-10 19:21:31,000 - ESG_AI_Test - ERROR - 登录测试失败: 'QueryParams' object has no attribute 'encode'
+2025-03-10 19:21:31,015 - ESG_AI_Test - ERROR - 登录失败测试异常: 'QueryParams' object has no attribute 'encode'
+2025-03-10 19:21:31,033 - httpx - INFO - HTTP Request: GET http://localhost:8000/api/v1/ai/test "HTTP/1.1 200 OK"
+2025-03-10 19:21:31,049 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-10 19:21:31,069 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-10 19:21:31,085 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-10 19:21:31,101 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-10 19:21:31,119 - httpx - INFO - HTTP Request: GET http://localhost:8000/api-test "HTTP/1.1 200 OK"
+2025-03-10 19:21:31,121 - ESG_AI_Test - INFO - 测试报告已生成: test_report_20250310_192131.html
+2025-03-10 19:21:31,121 - ESG_AI_Test - INFO - 测试执行完成
+2025-03-10 19:22:54,639 - ESG_AI_Test - INFO - 开始执行ESG AI平台自动化测试...
+2025-03-10 19:22:54,696 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/auth/login "HTTP/1.1 401 Unauthorized"
+2025-03-10 19:22:54,714 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/auth/login "HTTP/1.1 401 Unauthorized"
+2025-03-10 19:22:54,731 - httpx - INFO - HTTP Request: GET http://localhost:8000/api/v1/ai/test "HTTP/1.1 200 OK"
+2025-03-10 19:22:54,747 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-10 19:22:54,763 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-10 19:22:54,780 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-10 19:22:54,795 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-10 19:22:54,818 - httpx - INFO - HTTP Request: GET http://localhost:8000/api-test "HTTP/1.1 200 OK"
+2025-03-10 19:22:54,820 - ESG_AI_Test - INFO - 测试报告已生成: /app/test_report_20250310_192254.html
+2025-03-10 19:22:54,820 - ESG_AI_Test - INFO - 测试执行完成
+2025-03-10 19:25:19,485 - ESG_AI_Test - INFO - 开始执行ESG AI平台自动化测试...
+2025-03-10 19:25:19,725 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/auth/login "HTTP/1.1 200 OK"
+2025-03-10 19:25:19,744 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/auth/login "HTTP/1.1 401 Unauthorized"
+2025-03-10 19:25:19,760 - httpx - INFO - HTTP Request: GET http://localhost:8000/api/v1/ai/test "HTTP/1.1 200 OK"
+2025-03-10 19:25:19,776 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-10 19:25:19,791 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-10 19:25:19,806 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-10 19:25:19,822 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-10 19:25:19,842 - httpx - INFO - HTTP Request: GET http://localhost:8000/api-test "HTTP/1.1 200 OK"
+2025-03-10 19:25:19,845 - ESG_AI_Test - INFO - 测试报告已生成: /app/test_report_20250310_192519.html
+2025-03-10 19:25:19,845 - ESG_AI_Test - INFO - 测试执行完成
+2025-03-11 04:36:50,599 - ESG_AI_Test - INFO - 开始执行ESG AI平台自动化测试...
+2025-03-11 04:36:50,928 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/auth/login "HTTP/1.1 200 OK"
+2025-03-11 04:36:50,946 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/auth/login "HTTP/1.1 401 Unauthorized"
+2025-03-11 04:36:50,963 - httpx - INFO - HTTP Request: GET http://localhost:8000/api/v1/ai/test "HTTP/1.1 200 OK"
+2025-03-11 04:36:50,977 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-11 04:36:50,993 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-11 04:36:51,008 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-11 04:36:51,022 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/v1/ai/test-openai-proxy "HTTP/1.1 200 OK"
+2025-03-11 04:36:51,041 - httpx - INFO - HTTP Request: GET http://localhost:8000/api-test "HTTP/1.1 200 OK"
+2025-03-11 04:36:51,044 - ESG_AI_Test - INFO - 测试报告已生成: /app/test_report_20250311_043651.html
+2025-03-11 04:36:51,044 - ESG_AI_Test - INFO - 测试执行完成
