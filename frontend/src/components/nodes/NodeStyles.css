@@ -1,0 +1,59 @@
+.custom-node {
+  width: 180px;
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
+  overflow: hidden;
+}
+
+.node-header {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+}
+
+.node-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.node-content {
+  padding: 10px;
+}
+
+.node-title {
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.node-detail {
+  font-size: 12px;
+  color: #666;
+}
+
+/* 节点类型特定样式 */
+.data-source-node .node-header {
+  background: #1890ff;
+}
+
+.processing-node .node-header {
+  background: #52c41a;
+}
+
+.ai-analysis-node .node-header {
+  background: #722ed1;
+}
+
+.visualization-node .node-header {
+  background: #fa8c16;
+} 

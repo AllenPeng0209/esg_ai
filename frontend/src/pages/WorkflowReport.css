@@ -1,0 +1,287 @@
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100vh;
+}
+
+.report-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100vh;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  background-color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  position: sticky;
+  top: 0;
+  width: 100%;
+}
+
+.header-left, .header-right {
+  display: flex;
+  align-items: center;
+}
+
+.header-left > * {
+  margin-right: 16px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.report-content {
+  padding: 24px;
+  background-color: #f5f5f5;
+  flex: 1;
+  overflow-y: auto;
+  height: calc(100vh - 64px); /* 减去header高度 */
+}
+
+.report-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #fff;
+  padding: 32px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+}
+
+.report-header-section {
+  margin-bottom: 24px;
+}
+
+.report-meta {
+  margin: 16px 0;
+}
+
+.report-description {
+  margin-top: 16px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.report-section {
+  margin-bottom: 32px;
+}
+
+.chart-placeholder {
+  background-color: #f5f7fa;
+  border: 1px dashed #d9d9d9;
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.chart-placeholder-text {
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.summary-cards .ant-card {
+  height: 100%;
+}
+
+.hotspot-item, .improvement-item, .compliance-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.hotspot-item > *, .improvement-item > *, .compliance-item > * {
+  margin-right: 8px;
+}
+
+.standard-card .ant-card-head {
+  background-color: #f5f7fa;
+}
+
+.standard-detail {
+  height: 100%;
+}
+
+.standard-detail .ant-card-head {
+  background-color: #fff;
+}
+
+/* 可信打分系统样式 */
+.trust-score-card {
+  margin-bottom: 24px;
+}
+
+.trust-score-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.trust-score-title {
+  margin-top: 16px;
+  font-weight: 600;
+  font-size: 16px;
+  text-align: center;
+}
+
+.trust-score-table .ant-table-thead > tr > th {
+  background-color: #f5f7fa;
+  font-weight: 600;
+}
+
+.trust-score-summary {
+  padding: 16px 0;
+}
+
+.trust-score-summary ul {
+  margin-left: 16px;
+}
+
+.trust-score-summary li {
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+/* 质量平衡分析样式 */
+.mass-balance-formula, 
+.mass-balance-calculation {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+}
+
+.formula-fraction {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 10px;
+  text-align: center;
+}
+
+.formula-numerator, 
+.formula-denominator {
+  padding: 0 8px;
+  min-width: 200px;
+}
+
+.formula-line {
+  height: 2px;
+  background-color: #000;
+  width: 100%;
+  margin: 4px 0;
+}
+
+.mass-balance-calculation .formula-numerator,
+.mass-balance-calculation .formula-denominator {
+  font-weight: bold;
+  color: #1890ff;
+}
+
+.improvement-list {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.improvement-list li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+/* 评分状态指示器 */
+.score-status-success {
+  color: #52c41a;
+}
+
+.score-status-warning {
+  color: #faad14;
+}
+
+.score-status-error {
+  color: #f5222d;
+}
+
+/* 优先改进事项卡片 */
+.improvement-card {
+  border-left: 4px solid #faad14;
+  margin-bottom: 16px;
+}
+
+.critical-improvement-card {
+  border-left: 4px solid #f5222d;
+  margin-bottom: 16px;
+}
+
+/* 评分标准说明 */
+.scoring-rules-section h4 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+
+.scoring-rules-section table {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.scoring-rules-section table th,
+.scoring-rules-section table td {
+  padding: 12px 16px;
+  border: 1px solid #f0f0f0;
+}
+
+.scoring-rules-section table th {
+  background-color: #f5f7fa;
+  font-weight: 600;
+}
+
+/* 打印样式调整 */
+@media print {
+  .report-header {
+    display: none;
+  }
+  
+  .report-content {
+    padding: 0;
+    background-color: #fff;
+  }
+  
+  .report-container {
+    box-shadow: none;
+    max-width: 100%;
+    padding: 16px;
+  }
+
+  /* 打印时的可信打分样式调整 */
+  .trust-score-table .ant-table-thead > tr > th {
+    background-color: #f9f9f9 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .improvement-card,
+  .critical-improvement-card {
+    border-left: 2px solid #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 打印时的质量平衡样式调整 */
+  .formula-line {
+    background-color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+} 
