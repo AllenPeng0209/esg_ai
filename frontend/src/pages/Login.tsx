@@ -100,7 +100,7 @@ const SafeLoginForm: React.FC = () => {
       
       <Form
         name="login"
-        initialValues={{ username: 'test', password: 'password123' }}
+        initialValues={{ username: 'test@example.com', password: 'password123' }}
         onFinish={onFinish}
         size="large"
       >
