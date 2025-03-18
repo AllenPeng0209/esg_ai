@@ -14,5 +14,5 @@ COPY . .
 # 暴露端口
 EXPOSE 8000
 
-# 直接运行uvicorn命令
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+# 等待数据库并运行应用
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 
