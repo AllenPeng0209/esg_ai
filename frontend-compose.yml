@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # 前端服務
@@ -15,4 +15,4 @@ services:
     environment:
       - NODE_ENV=development
       - REACT_APP_API_URL=http://localhost:5000/api
-    command: sh -c "npm install && npm install reactflow@11.7.0 && npm start" 
+    command: sh -c "npm install && npm install reactflow@11.7.0 && npm start"

@@ -1,6 +1,8 @@
-from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel
+
 
 class NodeBase(BaseModel):
     node_id: str
@@ -10,33 +12,39 @@ class NodeBase(BaseModel):
     position_y: float
     data: Dict[str, Any] = {}
 
+
 class NodeCreate(NodeBase):
     pass
+
 
 class Node(NodeBase):
     id: int
     workflow_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
+
     class Config:
         from_attributes = True
+
 
 class EdgeBase(BaseModel):
     edge_id: str
     source: str
     target: str
 
+
 class EdgeCreate(EdgeBase):
     pass
+
 
 class Edge(EdgeBase):
     id: int
     workflow_id: int
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
+
 
 class WorkflowBase(BaseModel):
     name: str
@@ -44,9 +52,11 @@ class WorkflowBase(BaseModel):
     is_public: bool = False
     data: Dict[str, Any] = {}
 
+
 class WorkflowCreate(WorkflowBase):
     nodes: Optional[List[NodeCreate]] = None
     edges: Optional[List[EdgeCreate]] = None
+
 
 class WorkflowUpdate(BaseModel):
     name: Optional[str] = None
@@ -56,6 +66,7 @@ class WorkflowUpdate(BaseModel):
     nodes: Optional[List[NodeCreate]] = None
     edges: Optional[List[EdgeCreate]] = None
 
+
 class Workflow(WorkflowBase):
     id: int
     user_id: int
@@ -64,6 +75,6 @@ class Workflow(WorkflowBase):
     updated_at: Optional[datetime] = None
     nodes: List[Node] = []
     edges: List[Edge] = []
-    
+
     class Config:
-        from_attributes = True 
+        from_attributes = True

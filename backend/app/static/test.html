@@ -74,7 +74,7 @@
 </head>
 <body>
     <h1>ESG AI 平台 API 测试页面</h1>
-    
+
     <div class="card">
         <h2>1. 基础API测试（GET）</h2>
         <p>测试基本的GET请求，无需认证</p>
@@ -82,7 +82,7 @@
         <span id="basic-loading" style="display:none;" class="loading"></span>
         <div id="basic-response" class="response" style="margin-top: 10px; display: none;"></div>
     </div>
-    
+
     <div class="card">
         <h2>2. OpenAI API代理测试（无需认证）</h2>
         <p>测试OpenAI API代理接口，无需认证</p>
@@ -99,7 +99,7 @@
         <span id="openai-loading" style="display:none;" class="loading"></span>
         <div id="openai-response" class="response" style="margin-top: 10px; display: none;"></div>
     </div>
-    
+
     <div class="card">
         <h2>3. BOM标准化测试</h2>
         <p>测试BOM标准化接口</p>
@@ -117,14 +117,14 @@
         async function testBasicApi() {
             const loadingElem = document.getElementById('basic-loading');
             const responseElem = document.getElementById('basic-response');
-            
+
             try {
                 loadingElem.style.display = 'inline-block';
                 responseElem.style.display = 'none';
-                
+
                 const response = await fetch('/api/v1/ai/test');
                 const data = await response.json();
-                
+
                 responseElem.textContent = JSON.stringify(data, null, 2);
                 responseElem.style.display = 'block';
             } catch (error) {
@@ -134,24 +134,24 @@
                 loadingElem.style.display = 'none';
             }
         }
-        
+
         // OpenAI API代理测试
         async function testOpenAIProxy() {
             const inputElem = document.getElementById('openai-input');
             const loadingElem = document.getElementById('openai-loading');
             const responseElem = document.getElementById('openai-response');
-            
+
             try {
                 loadingElem.style.display = 'inline-block';
                 responseElem.style.display = 'none';
-                
+
                 let requestData = {};
                 try {
                     requestData = JSON.parse(inputElem.value);
                 } catch (e) {
                     throw new Error('输入的JSON格式不正确');
                 }
-                
+
                 const response = await fetch('/api/v1/ai/test-openai-proxy', {
                     method: 'POST',
                     headers: {
@@ -159,7 +159,7 @@
                     },
                     body: JSON.stringify(requestData)
                 });
-                
+
                 const data = await response.json();
                 responseElem.textContent = JSON.stringify(data, null, 2);
                 responseElem.style.display = 'block';
@@ -170,17 +170,17 @@
                 loadingElem.style.display = 'none';
             }
         }
-        
+
         // BOM标准化测试
         async function testBomStandardize() {
             const inputElem = document.getElementById('bom-input');
             const loadingElem = document.getElementById('bom-loading');
             const responseElem = document.getElementById('bom-response');
-            
+
             try {
                 loadingElem.style.display = 'inline-block';
                 responseElem.style.display = 'none';
-                
+
                 const response = await fetch('/api/v1/ai/test-openai-proxy', {
                     method: 'POST',
                     headers: {
@@ -200,7 +200,7 @@
                         model: "gpt-3.5-turbo"
                     })
                 });
-                
+
                 const data = await response.json();
                 responseElem.textContent = JSON.stringify(data, null, 2);
                 responseElem.style.display = 'block';
@@ -213,4 +213,4 @@
         }
     </script>
 </body>
-</html> 
+</html>

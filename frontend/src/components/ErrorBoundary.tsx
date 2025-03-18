@@ -1,6 +1,6 @@
-import { Alert, Button } from 'antd';
-import { Component, ErrorInfo, ReactNode } from 'react';
-import { safeRenderError } from '../utils/safeRender';
+import { Alert, Button } from "antd";
+import { Component, ErrorInfo, ReactNode } from "react";
+import { safeRenderError } from "../utils/safeRender";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -24,7 +24,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
     };
   }
 
@@ -34,7 +34,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // 记录错误信息
-    console.error('捕获到渲染错误:', error, errorInfo);
+    console.error("捕获到渲染错误:", error, errorInfo);
     this.setState({ errorInfo });
   }
 
@@ -59,17 +59,19 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       const errorMessage = safeRenderError(error);
 
       return (
-        <div style={{ padding: '20px', maxWidth: '800px', margin: '20px auto' }}>
+        <div
+          style={{ padding: "20px", maxWidth: "800px", margin: "20px auto" }}
+        >
           <Alert
             message="页面渲染错误"
             description={
               <div>
                 <p>抱歉，页面渲染时遇到了问题。</p>
                 <p>错误信息: {errorMessage}</p>
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   onClick={this.handleReset}
-                  style={{ marginTop: '10px' }}
+                  style={{ marginTop: "10px" }}
                 >
                   重试
                 </Button>
@@ -86,4 +88,4 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 }
 
-export default ErrorBoundary; 
+export default ErrorBoundary;

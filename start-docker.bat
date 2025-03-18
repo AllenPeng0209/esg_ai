@@ -9,4 +9,4 @@ echo 前端: http://localhost:3000
 echo 后端: http://localhost:8000
 echo API 文档: http://localhost:8000/docs
 
-pause 
+pause

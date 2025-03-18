@@ -1,8 +1,9 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Enum
-from sqlalchemy.sql import func
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 from app.database import Base
+
 
 class VendorTask(Base):
     __tablename__ = "vendor_tasks"
@@ -13,10 +14,12 @@ class VendorTask(Base):
     product_name = Column(String, nullable=False)  # 產品名稱
     vendor = Column(String, nullable=False)  # 供應商名稱
     description = Column(Text, nullable=True)  # 任務描述
-    status = Column(Enum("pending", "completed", "overdue", name="task_status"), default="pending")  # 任務狀態
+    status = Column(
+        Enum("pending", "completed", "overdue", name="task_status"), default="pending"
+    )  # 任務狀態
     deadline = Column(DateTime, nullable=True)  # 截止日期
     created_at = Column(DateTime(timezone=True), server_default=func.now())  # 創建時間
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())  # 更新時間
-    
+
     # 關聯
-    workflow = relationship("Workflow", back_populates="vendor_tasks") 
+    workflow = relationship("Workflow", back_populates="vendor_tasks")

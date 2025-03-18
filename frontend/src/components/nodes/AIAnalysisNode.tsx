@@ -1,7 +1,7 @@
-import { RobotOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import React, { memo } from 'react';
-import { Handle, NodeProps, Position } from 'reactflow';
-import './NodeStyles.css';
+import { RobotOutlined, ThunderboltOutlined } from "@ant-design/icons";
+import React, { memo } from "react";
+import { Handle, NodeProps, Position } from "reactflow";
+import "./NodeStyles.css";
 
 const AIAnalysisNode: React.FC<NodeProps> = ({ data }) => {
   return (
@@ -10,10 +10,12 @@ const AIAnalysisNode: React.FC<NodeProps> = ({ data }) => {
         type="target"
         position={Position.Top}
         id="target"
-        style={{ top: -8, background: '#4096ff' }}
+        style={{ top: -8, background: "#4096ff" }}
       />
       <div className="node-header">
-        <span className="node-icon"><RobotOutlined /></span>
+        <span className="node-icon">
+          <RobotOutlined />
+        </span>
         <span className="node-type">AI分析</span>
       </div>
       <div className="node-content">
@@ -30,10 +32,10 @@ const AIAnalysisNode: React.FC<NodeProps> = ({ data }) => {
         type="source"
         position={Position.Bottom}
         id="source"
-        style={{ bottom: -8, background: '#4096ff' }}
+        style={{ bottom: -8, background: "#4096ff" }}
       />
     </div>
   );
 };
 
-export default memo(AIAnalysisNode); 
+export default memo(AIAnalysisNode);

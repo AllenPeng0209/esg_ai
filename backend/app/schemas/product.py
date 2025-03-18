@@ -1,6 +1,8 @@
-from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel
+
 
 class ProductBase(BaseModel):
     name: str
@@ -10,8 +12,10 @@ class ProductBase(BaseModel):
     dimensions: Optional[str] = None
     materials: Optional[Dict[str, Any]] = None
 
+
 class ProductCreate(ProductBase):
     pass
+
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -22,12 +26,13 @@ class ProductUpdate(BaseModel):
     materials: Optional[Dict[str, Any]] = None
     carbon_footprint: Optional[float] = None
 
+
 class Product(ProductBase):
     id: int
     user_id: int
     carbon_footprint: float
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
+
     class Config:
-        from_attributes = True 
+        from_attributes = True

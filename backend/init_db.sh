@@ -9,4 +9,4 @@ echo "运行数据库迁移..."
 cd "$(dirname "$0")"
 alembic upgrade head
 
-echo "数据库初始化完成！" 
+echo "数据库初始化完成！"

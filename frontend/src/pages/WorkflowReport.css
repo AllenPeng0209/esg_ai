@@ -26,7 +26,8 @@ body {
   width: 100%;
 }
 
-.header-left, .header-right {
+.header-left,
+.header-right {
   display: flex;
   align-items: center;
 }
@@ -97,13 +98,17 @@ body {
   height: 100%;
 }
 
-.hotspot-item, .improvement-item, .compliance-item {
+.hotspot-item,
+.improvement-item,
+.compliance-item {
   display: flex;
   align-items: flex-start;
   margin-bottom: 16px;
 }
 
-.hotspot-item > *, .improvement-item > *, .compliance-item > * {
+.hotspot-item > *,
+.improvement-item > *,
+.compliance-item > * {
   margin-right: 8px;
 }
 
@@ -157,7 +162,7 @@ body {
 }
 
 /* 质量平衡分析样式 */
-.mass-balance-formula, 
+.mass-balance-formula,
 .mass-balance-calculation {
   display: flex;
   align-items: center;
@@ -172,7 +177,7 @@ body {
   text-align: center;
 }
 
-.formula-numerator, 
+.formula-numerator,
 .formula-denominator {
   padding: 0 8px;
   min-width: 200px;
@@ -252,12 +257,12 @@ body {
   .report-header {
     display: none;
   }
-  
+
   .report-content {
     padding: 0;
     background-color: #fff;
   }
-  
+
   .report-container {
     box-shadow: none;
     max-width: 100%;
@@ -284,4 +289,4 @@ body {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-} 
+}

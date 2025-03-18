@@ -1,5 +1,7 @@
-from pydantic import BaseModel, EmailStr
 from typing import Optional
+
+from pydantic import BaseModel, EmailStr
+
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -9,8 +11,10 @@ class UserBase(BaseModel):
     is_active: Optional[bool] = True
     is_superuser: Optional[bool] = False
 
+
 class UserCreate(UserBase):
     password: str
+
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
@@ -20,15 +24,17 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     is_active: Optional[bool] = None
 
+
 class UserInDB(UserBase):
     id: int
     hashed_password: str
-    
+
     class Config:
         from_attributes = True
 
+
 class User(UserBase):
     id: int
-    
+
     class Config:
-        from_attributes = True 
+        from_attributes = True

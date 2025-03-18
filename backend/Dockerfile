@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 8000
 
 # 等待数据库并运行应用
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

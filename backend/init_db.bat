@@ -10,4 +10,4 @@ cd %~dp0
 alembic upgrade head
 
 echo 数据库初始化完成！
-pause 
+pause

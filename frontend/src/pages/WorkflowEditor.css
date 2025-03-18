@@ -12,7 +12,8 @@
   z-index: 100;
 }
 
-.header-left, .header-right {
+.header-left,
+.header-right {
   display: flex;
   align-items: center;
 }
@@ -246,8 +247,13 @@
 
 /* 拖放消息样式 */
 @keyframes fadeInOut {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .drop-message {
@@ -304,7 +310,8 @@
   opacity: 1;
 }
 
-.editor-sider, .properties-sider {
+.editor-sider,
+.properties-sider {
   background: #fff;
   border-right: 1px solid #f0f0f0;
   overflow-y: auto;
@@ -626,7 +633,9 @@ body.resizing {
 }
 
 .react-flow__node.selected {
-  box-shadow: 0 0 0 2px #1890ff, 0 0 15px rgba(24, 144, 255, 0.4);
+  box-shadow:
+    0 0 0 2px #1890ff,
+    0 0 15px rgba(24, 144, 255, 0.4);
   z-index: 10;
   transform: scale(1.02);
   transition: all 0.2s ease;
@@ -836,8 +845,12 @@ body.resizing {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .bom-comparison {
@@ -846,7 +859,8 @@ body.resizing {
   margin-bottom: 20px;
 }
 
-.bom-original, .bom-processed {
+.bom-original,
+.bom-processed {
   flex: 1;
   padding: 15px;
   border-radius: 6px;
@@ -865,18 +879,20 @@ body.resizing {
   border: 1px solid #d9e9ff;
 }
 
-.bom-original h3, .bom-processed h3 {
+.bom-original h3,
+.bom-processed h3 {
   margin-top: 0;
   padding-bottom: 10px;
   border-bottom: 1px solid #e8e8e8;
 }
 
-.bom-original pre, .bom-processed pre {
+.bom-original pre,
+.bom-processed pre {
   white-space: pre-wrap;
   word-wrap: break-word;
   max-height: 300px;
   overflow: auto;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   padding: 10px;
   margin: 0;
 }
@@ -939,8 +955,13 @@ body.resizing {
 
 /* 添加拖放提示消息样式 */
 @keyframes fadeInOut {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .drop-message {
@@ -962,4 +983,4 @@ body.resizing {
 
 .editor-content[style*="background-color: rgba(0, 0, 0, 0.02)"] .drop-message {
   display: block;
-} 
+}

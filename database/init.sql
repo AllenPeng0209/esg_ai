@@ -87,7 +87,7 @@ VALUES
     NOW(),
     NOW()
   ),
-  
+
   -- 数据处理类型
   (
     uuid_generate_v4(),
@@ -128,7 +128,7 @@ VALUES
     NOW(),
     NOW()
   ),
-  
+
   -- AI分析类型
   (
     uuid_generate_v4(),
@@ -169,7 +169,7 @@ VALUES
     NOW(),
     NOW()
   ),
-  
+
   -- 可视化类型
   (
     uuid_generate_v4(),
@@ -210,4 +210,4 @@ VALUES
     NOW(),
     NOW()
   )
-ON CONFLICT DO NOTHING; 
+ON CONFLICT DO NOTHING;

@@ -21,4 +21,4 @@ echo "等待服务启动..."
 sleep 5
 
 # 检查服务状态
-docker compose ps 
+docker compose ps

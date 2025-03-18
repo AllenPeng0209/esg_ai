@@ -18,4 +18,4 @@ REM 启动应用
 echo 启动应用...
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-pause 
+pause

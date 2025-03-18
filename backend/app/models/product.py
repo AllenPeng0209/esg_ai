@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Text, JSON
-from sqlalchemy.sql import func
+from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
+
 
 class Product(Base):
     __tablename__ = "products"
@@ -19,4 +21,4 @@ class Product(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # 关联关系
-    user = relationship("User", back_populates="products") 
+    user = relationship("User", back_populates="products")

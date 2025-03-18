@@ -54,4 +54,4 @@ networks:
           gateway: 172.20.0.1
 
 volumes:
-  postgres_data: 
+  postgres_data:

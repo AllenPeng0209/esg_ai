@@ -52,7 +52,7 @@ esg_ai/
    ```bash
    # Windows
    set OPENAI_API_KEY=your-openai-api-key
-   
+
    # Linux/Mac
    export OPENAI_API_KEY=your-openai-api-key
    ```
@@ -61,7 +61,7 @@ esg_ai/
    ```bash
    # Windows
    start-docker.bat
-   
+
    # Linux/Mac
    chmod +x start-docker.sh
    ./start-docker.sh
