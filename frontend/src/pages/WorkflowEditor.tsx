@@ -1,56 +1,20 @@
-import AppstoreAddOutlined from '@ant-design/icons/AppstoreAddOutlined';
-import ArrowLeftOutlined from '@ant-design/icons/ArrowLeftOutlined';
-import BarChartOutlined from '@ant-design/icons/BarChartOutlined';
-import CarOutlined from '@ant-design/icons/CarOutlined';
-import CheckCircleOutlined from '@ant-design/icons/CheckCircleOutlined';
-import CloseOutlined from '@ant-design/icons/CloseOutlined';
-import CopyOutlined from '@ant-design/icons/CopyOutlined';
-import DeleteOutlined from '@ant-design/icons/DeleteOutlined';
-import ExperimentOutlined from '@ant-design/icons/ExperimentOutlined';
-import ExportOutlined from '@ant-design/icons/ExportOutlined';
-import PartitionOutlined from '@ant-design/icons/PartitionOutlined';
-import PlusOutlined from '@ant-design/icons/PlusOutlined';
-import RobotOutlined from '@ant-design/icons/RobotOutlined';
-import SaveOutlined from '@ant-design/icons/SaveOutlined';
-import SettingOutlined from '@ant-design/icons/SettingOutlined';
-import ThunderboltOutlined from '@ant-design/icons/ThunderboltOutlined';
-import UploadOutlined from '@ant-design/icons/UploadOutlined';
-import UserOutlined from '@ant-design/icons/UserOutlined';
-import FolderAddOutlined from '@ant-design/icons/FolderAddOutlined';
-import EditOutlined from '@ant-design/icons/EditOutlined';
-import FileTextOutlined from '@ant-design/icons/FileTextOutlined';
-import FileOutlined from '@ant-design/icons/FileOutlined';
-import ClockCircleOutlined from '@ant-design/icons/ClockCircleOutlined';
-import GlobalOutlined from '@ant-design/icons/GlobalOutlined';
-import BranchesOutlined from '@ant-design/icons/BranchesOutlined';
-
-import {
-  Button,
-  Empty,
-  Form,
-  Input,
-  InputNumber,
-  Layout,
-  Menu,
-  message,
-  Modal,
-  Select,
-  Spin,
-  Table,
-  Tree,
-  Upload,
-  Card,
-  Row,
-  Col,
-  Statistic,
-  Progress,
-  Tag,
-  Typography,
-  Divider,
-  Alert,
-  DatePicker,
-  Collapse,
-  Switch
+﻿import {
+  PlusOutlined, DeleteOutlined, CopyOutlined, SendOutlined, SaveOutlined, 
+  ArrowLeftOutlined, UndoOutlined, RedoOutlined, FileOutlined, FolderOutlined,
+  ExperimentOutlined, CloudUploadOutlined, UploadOutlined, DownloadOutlined,
+  BranchesOutlined, ExportOutlined, EditOutlined, FileSearchOutlined,
+  SettingOutlined, CloseOutlined, EllipsisOutlined, BarChartOutlined,
+  ThunderboltOutlined, ImportOutlined, CheckOutlined, AlertOutlined,
+  WarningOutlined, InfoCircleOutlined, QuestionCircleOutlined, PaperClipOutlined,
+  RobotOutlined, CarOutlined, UserOutlined, AppstoreAddOutlined, CheckCircleOutlined,
+  ReloadOutlined, UpOutlined, DownOutlined, FolderAddOutlined
+} from '@ant-design/icons';
+import { 
+  Button, Layout, Input, Select, InputNumber, DatePicker, Form, 
+  message, Dropdown, Menu, Modal, Upload, Space, Divider, Spin,
+  Collapse, Table, Tabs, List, Card, Tag, Tooltip, Switch, Progress,
+  Empty, Popconfirm, notification, Row, Col, Typography, Badge, Alert,
+  Radio, Drawer, Tree, Timeline, Checkbox, Skeleton, Descriptions
 } from 'antd';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -108,6 +72,24 @@ const nodeTypes = {
   disposal: ProductNode
 };
 
+
+// 原有的产品节点数据类型
+interface BaseNodeData {
+  label: string;
+  NodeName: string;
+  carbonFootprint: number;
+  dataSource: string;
+  lifecycleStage: string;
+  emissionFactor: string;
+  calculationMethod: string;
+  uncertaintyScore: number;
+  verificationStatus: string;
+  applicableStandard: string;
+  completionStatus: string;
+  carbonFactor: number;
+}
+
+
 // 原有的产品节点数据类型
 interface ProductNodeData {
   label: string;
@@ -119,6 +101,7 @@ interface ProductNodeData {
   emissionFactor: string;
   calculationMethod: string;
   uncertainty: string;
+  uncertaintyScore: number;
   verificationStatus: string;
   applicableStandard: string;
   material?: string;
@@ -126,9 +109,8 @@ interface ProductNodeData {
   completionStatus: string;
   certaintyPercentage?: number;
   carbonFactor: number;
-  initWeight?: number;
-  initCarbonFootprint?: number;
-  initCarbonFactor?: number;
+  quantity?: string;
+  weight_per_unit?: string;
 }
 
 // 生产制造阶段节点数据类型
@@ -216,6 +198,27 @@ interface TreeNodeType {
   lifecycleStage?: string; // 添加生命周期阶段属性
 }
 
+// AI总结模块接口
+interface AISummary {
+  credibilityScore: number;
+  missingLifecycleStages: string[];
+  optimizableNode: {
+    id: string;
+    label: string;
+    reason: string;
+  } | null;
+  manualRequiredNodes: {
+    id: string;
+    label: string;
+  }[];
+  uncertainAiNodes: {
+    id: string;
+    label: string;
+    uncertaintyScore: number;
+  }[];
+  isExpanded: boolean;
+}
+
 const WorkflowEditor: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -247,7 +250,7 @@ const WorkflowEditor: React.FC = () => {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [rightSiderVisible, setRightSiderVisible] = useState(false);
-  const [siderWidth, setSiderWidth] = useState(250);
+  const [siderWidth, setSiderWidth] = useState(350);
   const [isResizing, setIsResizing] = useState(false);
   const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
   const [fileMenuVisible, setFileMenuVisible] = useState(false);
@@ -264,8 +267,25 @@ const WorkflowEditor: React.FC = () => {
   const [vendorTaskDeadline, setVendorTaskDeadline] = useState<Dayjs | null>(null);
   const [vendorModalVisible, setVendorModalVisible] = useState(false);
   const [editedVendorName, setEditedVendorName] = useState('');
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  // 新增AI总结状态
+  const [aiSummary, setAiSummary] = useState<AISummary>({
+    credibilityScore: 0,
+    missingLifecycleStages: [],
+    optimizableNode: null,
+    manualRequiredNodes: [],
+    uncertainAiNodes: [],
+    isExpanded: true
+  });
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 初始化时设置CSS变量，使AI总结位置正确
+  useEffect(() => {
+    document.documentElement.style.setProperty('--sider-width', `${siderWidth}px`);
+  }, [siderWidth]);
+  
   // 材料分解结果
   const [materialDecompositionResults, setMaterialDecompositionResults] = useState<{
     visible: boolean;
@@ -350,7 +370,7 @@ const WorkflowEditor: React.FC = () => {
     data: { 
                   ...node.data,
                   // 重置为节点的初始/固有值，而不是简单设为0
-                  weight: node.data.initWeight || 0,
+                  weight: 0,
                   carbonFootprint: node.data.initCarbonFootprint || 0,
                   carbonFactor: node.data.initCarbonFactor || 0
                 }
@@ -702,6 +722,7 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
     }
   };
   
+  
   // 创建新节点
   const addNewNode = () => {
     if (reactFlowInstance) {
@@ -715,11 +736,11 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
         type: 'product',
         position,
         data: {
-          label: '新产品',
-          productName: '新产品',
+          label: '新节点',
+          productName: '新节点',
           weight: 0,
           carbonFootprint: 0,
-          dataSource: '手动输入',
+          dataSource: '',
           lifecycleStage: '全生命周期',
           emissionFactor: '',
           calculationMethod: 'ISO 14067',
@@ -727,7 +748,9 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
           verificationStatus: '未验证',
           applicableStandard: 'ISO 14067',
           completionStatus: 'manual-required', // 默认为需要人工介入
-          carbonFactor: 0 // 添加碳排放因子属性
+          carbonFactor: 0, // 添加碳排放因子属性
+          uncertaintyScore: 0,
+          
         }
       };
       
@@ -902,8 +925,8 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
   // 添加所有生命周期阶段节点
   const addAllLifecycleStages = useCallback(() => {
     // 原材料获取及预加工 - 绿色表示从BOM拆分得到已完成
-        // 生产制造 - 黄色表示AI补充
-    addLifecycleStageNode('生产制造', 'ai-supplemented');
+    // 生产制造 - 黄色表示AI补充
+    addLifecycleStageNode('生产制造', 'manual-required');
     
     // 分销和储存 - 红色表示需要人工介入
     addLifecycleStageNode('分销和储存', 'manual-required');
@@ -1104,11 +1127,11 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
               ...node,
               data: {
                 ...node.data,
-                weight: node.data.initWeight || node.data.weight || 0,
-                carbonFootprint: node.data.initCarbonFootprint || 
-                  (node.data.initWeight && node.data.carbonFactor ? 
-                    node.data.initWeight * node.data.carbonFactor : 0),
-                carbonFactor: node.data.initCarbonFactor || node.data.carbonFactor || 0
+                weight: node.data.weight || 0,
+                carbonFootprint: node.data.CarbonFootprint || 
+                  (node.data.Weight && node.data.carbonFactor ? 
+                    node.data.Weight * node.data.carbonFactor : 0),
+                carbonFactor:  node.data.carbonFactor || 0
               }
             };
           }
@@ -1118,6 +1141,9 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
         message.info(`节点 ${targetNode.data.productName || targetNode.data.label || '未命名节点'} 没有输入连接，已恢复初始值`);
       }
     });
+    
+    // 更新AI总结
+    setTimeout(() => updateAiSummary(), 100);
   };
 
   // 点击节点
@@ -1588,10 +1614,10 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
           addAllLifecycleStages();
           break;
         case 'rawMaterial':
-          addLifecycleStageNode('原材料', 'completed');
+          addLifecycleStageNode('原材料', 'manual-required');
           break;
         case 'manufacturing':
-          addLifecycleStageNode('生产制造', 'ai-supplemented');
+          addLifecycleStageNode('生产制造', 'manual-required');
           break;
         case 'distribution':
           addLifecycleStageNode('分销和储存', 'manual-required');
@@ -1874,11 +1900,11 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
             // CSV文件以表格形式显示
             const { columns, dataSource } = parseCSVContent(selectedFile.content);
             
-            Modal.info({
+          Modal.info({
               title: `预览文件: ${selectedFile.title}`,
-              width: 800,
-              content: (
-                <div style={{ maxHeight: '500px', overflow: 'auto' }}>
+            width: 800,
+            content: (
+              <div style={{ maxHeight: '500px', overflow: 'auto' }}>
                   {dataSource.length > 0 ? (
                     <Table 
                       columns={columns} 
@@ -1897,17 +1923,17 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
                   <div style={{ marginTop: '16px' }}>
                     <Collapse>
                       <Collapse.Panel header="查看原始文本" key="1">
-                        <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                          {selectedFile.content}
-                        </pre>
+                <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                  {selectedFile.content}
+                </pre>
                       </Collapse.Panel>
                     </Collapse>
                   </div>
-                </div>
-              ),
+              </div>
+            ),
               okText: '关闭'
-            });
-          } else {
+          });
+        } else {
             // 非CSV文件仍使用纯文本显示
             Modal.info({
               title: `预览文件: ${selectedFile.title}`,
@@ -2358,96 +2384,96 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
   // 处理放置事件
   const handleDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
-      event.preventDefault();
+    event.preventDefault();
       
       // 删除对未定义函数的调用
-      
-      // 重置拖拽悬停状态
-      setIsDraggingOver(false);
-      
-      // 获取拖放位置 - 相对于ReactFlow的坐标
-      let position = { x: 0, y: 0 };
-      
-      if (reactFlowInstance && reactFlowWrapper.current) {
-        const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-        position = reactFlowInstance.project({
-          x: event.clientX - reactFlowBounds.left,
-          y: event.clientY - reactFlowBounds.top
-        });
-      }
-      
-      console.log('获取到的拖放位置:', position);
-      
-      // 确定要处理的文件数据 - 按优先级查找
-      let fileToProcess = null;
-      
-      // 1. 首先检查全局变量
-      if (window.__GLOBAL_DRAGGED_FILE__) {
-        console.log('从全局变量获取拖拽文件');
-        fileToProcess = window.__GLOBAL_DRAGGED_FILE__;
-      } 
-      // 2. 其次检查React状态
-      else if (draggedFile) {
-        console.log('从React状态获取拖拽文件');
-        fileToProcess = draggedFile;
-      } 
-      // 3. 再次检查sessionStorage
-      else {
-        try {
-          const savedData = window.sessionStorage.getItem('lastDraggedFile');
-          if (savedData) {
-            console.log('从sessionStorage获取拖拽文件');
-            fileToProcess = JSON.parse(savedData);
-          }
-        } catch (error) {
-          console.error('从sessionStorage读取数据失败:', error);
+    
+    // 重置拖拽悬停状态
+    setIsDraggingOver(false);
+    
+    // 获取拖放位置 - 相对于ReactFlow的坐标
+    let position = { x: 0, y: 0 };
+    
+    if (reactFlowInstance && reactFlowWrapper.current) {
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top
+      });
+    }
+    
+    console.log('获取到的拖放位置:', position);
+    
+    // 确定要处理的文件数据 - 按优先级查找
+    let fileToProcess = null;
+    
+    // 1. 首先检查全局变量
+    if (window.__GLOBAL_DRAGGED_FILE__) {
+      console.log('从全局变量获取拖拽文件');
+      fileToProcess = window.__GLOBAL_DRAGGED_FILE__;
+    } 
+    // 2. 其次检查React状态
+    else if (draggedFile) {
+      console.log('从React状态获取拖拽文件');
+      fileToProcess = draggedFile;
+    } 
+    // 3. 再次检查sessionStorage
+    else {
+      try {
+        const savedData = window.sessionStorage.getItem('lastDraggedFile');
+        if (savedData) {
+          console.log('从sessionStorage获取拖拽文件');
+          fileToProcess = JSON.parse(savedData);
         }
+      } catch (error) {
+        console.error('从sessionStorage读取数据失败:', error);
       }
-      
-      // 4. 最后尝试从dataTransfer获取
-      if (!fileToProcess && event.dataTransfer) {
-        try {
-          const dataTransferJson = event.dataTransfer.getData('application/json');
-          if (dataTransferJson) {
-            console.log('从dataTransfer获取拖拽文件');
-            fileToProcess = JSON.parse(dataTransferJson);
-          }
-        } catch (error) {
-          console.error('从dataTransfer读取数据失败:', error);
+    }
+    
+    // 4. 最后尝试从dataTransfer获取
+    if (!fileToProcess && event.dataTransfer) {
+      try {
+        const dataTransferJson = event.dataTransfer.getData('application/json');
+        if (dataTransferJson) {
+          console.log('从dataTransfer获取拖拽文件');
+          fileToProcess = JSON.parse(dataTransferJson);
         }
+      } catch (error) {
+        console.error('从dataTransfer读取数据失败:', error);
       }
+    }
+    
+    // 如果找不到文件数据，显示错误
+    if (!fileToProcess) {
+      console.error('无法确定要处理的文件，拖拽数据丢失');
+      message.error('无法识别拖拽内容，请重试');
+      cleanUpDragState();
+      return;
+    }
+    
+    // 如果是BOM文件，直接处理
+    if (fileToProcess.fileType === 'bom') {
+      console.log('处理BOM文件:', fileToProcess.title);
+      console.log('BOM文件内容类型:', typeof fileToProcess.content, '长度:', 
+        typeof fileToProcess.content === 'string' ? fileToProcess.content.length : 'N/A');
       
-      // 如果找不到文件数据，显示错误
-      if (!fileToProcess) {
-        console.error('无法确定要处理的文件，拖拽数据丢失');
-        message.error('无法识别拖拽内容，请重试');
+      try {
+        // 直接处理文件，不依赖dataTransfer
+        processBomFile(fileToProcess, position);
+        
+        // 处理完成后清理拖拽状态
+        cleanUpDragState();
+        
+        // 显示成功消息
+        message.success(`已成功创建节点: ${fileToProcess.title}`);
+        return;
+      } catch (error) {
+        console.error('处理BOM文件失败:', error);
+        message.error('处理BOM文件时发生错误');
         cleanUpDragState();
         return;
       }
-      
-      // 如果是BOM文件，直接处理
-      if (fileToProcess.fileType === 'bom') {
-        console.log('处理BOM文件:', fileToProcess.title);
-        console.log('BOM文件内容类型:', typeof fileToProcess.content, '长度:', 
-          typeof fileToProcess.content === 'string' ? fileToProcess.content.length : 'N/A');
-        
-        try {
-          // 直接处理文件，不依赖dataTransfer
-          processBomFile(fileToProcess, position);
-          
-          // 处理完成后清理拖拽状态
-          cleanUpDragState();
-          
-          // 显示成功消息
-          message.success(`已成功创建节点: ${fileToProcess.title}`);
-          return;
-        } catch (error) {
-          console.error('处理BOM文件失败:', error);
-          message.error('处理BOM文件时发生错误');
-          cleanUpDragState();
-          return;
-        }
-      } 
+    } 
       // 处理生产制造阶段文件
       else if (fileToProcess.fileType === 'manufacturing' || 
                fileToProcess.fileType === '生产制造' || 
@@ -2495,8 +2521,8 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
         } catch (error) {
           console.error('处理产品使用阶段文件失败:', error);
           message.error('处理产品使用阶段文件时发生错误');
-          cleanUpDragState();
-          return;
+        cleanUpDragState();
+        return;
         }
       }
       // 处理废弃处置阶段文件
@@ -2508,19 +2534,19 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
         try {
           // 处理废弃处置阶段文件
           processDisposalFile(fileToProcess, position);
-          return;
-        } catch (error) {
+        return;
+      } catch (error) {
           console.error('处理废弃处置阶段文件失败:', error);
           message.error('处理废弃处置阶段文件时发生错误');
-          cleanUpDragState();
-          return;
-        }
+        cleanUpDragState();
+        return;
+      }
       }
       else {
         console.error('不支持的文件类型:', fileToProcess ? fileToProcess.fileType : '未知');
-        message.error('不支持的文件类型，仅支持标准化文件');
-        cleanUpDragState();
-      }
+      message.error('不支持的文件类型，仅支持标准化文件');
+      cleanUpDragState();
+    }
     }, [reactFlowInstance, draggedFile, cleanUpDragState]);
 
   // 处理BOM文件拖放到节点上的逻辑
@@ -2568,7 +2594,7 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
     }
   };
   
-
+  
   // 处理文件内容的函数
   const processFileContent = (content: string, position: { x: number, y: number }, fileName: string) => {
     // 按行分割
@@ -2590,7 +2616,9 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
       material: headers.findIndex((h: string) => h.includes('材料') || h.includes('类型')),
       weight: headers.findIndex((h: string) => h.includes('重量')),
       supplier: headers.findIndex((h: string) => h.includes('供应')),
-      carbonFactor: headers.findIndex((h: string) => h.includes('碳排放因子') || h.includes('碳因子'))
+      carbonFactor: headers.findIndex((h: string) => h.includes('碳排放因子') || h.includes('碳因子')),
+      quantity: headers.findIndex((h: string) => h.includes('数量') || h.includes('数量')),
+      weight_per_unit: headers.findIndex((h: string) => h.includes('单位重量') || h.includes('单位重量'))
     };
     
     // 验证必要的列是否存在
@@ -2632,7 +2660,8 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
       const componentName = values[headerMap.name];
       const material = headerMap.material !== -1 ? values[headerMap.material] : '';
       const supplier = headerMap.supplier !== -1 ? values[headerMap.supplier] : '';
-      
+      const quantity = headerMap.quantity !== -1 ? values[headerMap.quantity] : '';
+      const weight_per_unit = headerMap.weight_per_unit !== -1 ? values[headerMap.weight_per_unit] : '';
       // 处理重量（可能是g，需要转换为kg）
       let weight = parseFloat(values[headerMap.weight]);
       if (isNaN(weight)) {
@@ -2693,9 +2722,9 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
           supplier: supplier,
           completionStatus: '已完成',
           carbonFactor: carbonFactor,
-          initWeight: weight,
-          initCarbonFootprint: carbonFootprint,
-          initCarbonFactor: carbonFactor
+          quantity: quantity,
+          weight_per_unit: weight_per_unit,
+          uncertaintyScore: 0
         }
       };
       
@@ -2743,7 +2772,8 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
         certaintyPercentage: 90,
         carbonFactor: totalWeight > 0 ? totalCarbonFootprint / totalWeight : 0,
         material: '',
-        supplier: ''
+        supplier: '',
+        uncertaintyScore: 0
       }
     };
     
@@ -2840,10 +2870,7 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
       nodeData.carbonFootprint = nodeData.weight * nodeData.carbonFactor;
     }
     
-    // 保存初始值用于比较
-    nodeData.initWeight = nodeData.weight;
-    nodeData.initCarbonFootprint = nodeData.carbonFootprint;
-    nodeData.initCarbonFactor = nodeData.carbonFactor;
+   
     
     return nodeData;
   };
@@ -2880,7 +2907,7 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
         if (node.id === selectedNode.id) {
           return {
             ...node,
-            data: updatedData
+            data: updatedData,
           };
         }
         return node;
@@ -2894,6 +2921,14 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
     });
     
     console.log('节点更新后数据:', updatedData);
+    // 
+    // 性、数据来源或碳足迹相关时，更新AI总结
+    if (['completionStatus', 'dataSource', 'carbonFootprint', 'weight', 'carbonFactor', 
+         'certaintyPercentage', 'lifecycleStage', 'completionStatus'].includes(key)) {
+      setTimeout(() => updateAiSummary(), 100);
+    }
+
+    console.log('ai summary:', aiSummary);
   };
   
   // 更新节点碳足迹计算
@@ -2925,6 +2960,9 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
     const handleMouseMove = (e: MouseEvent) => {
       const newWidth = startWidth + e.clientX - startX;
       setSiderWidth(Math.max(200, Math.min(400, newWidth)));
+      
+      // 更新AI总结浮动容器的位置
+      document.documentElement.style.setProperty('--sider-width', `${Math.max(300, Math.min(600, newWidth))}px`);
     };
     
     const handleMouseUp = () => {
@@ -2937,166 +2975,219 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
   };
   
   // AI一键生成功能
-  const handleAutoAIGenerate = () => {
-    if (nodes.length === 0) {
-      message.warning('工作流中没有节点，请先添加产品节点');
+  const handleAutoAIGenerate = async () => {
+    // 获取所有需要AI优化的节点
+    const AI_Nodes = nodes.filter(node => {
+      const data = node.data as ProductNodeData;
+      return (
+        !data.carbonFootprint || 
+        !data.carbonFactor || 
+        !data.weight || 
+        data.completionStatus === 'manual-required'
+      );
+    });
+
+    if (AI_Nodes.length === 0) {
+      message.info('所有节点都已有碳排放数据，无需AI优化');
       return;
     }
 
-    // 查找所有碳因子不存在或为0的节点，不再限制只处理原材料节点
-    const productNodes = nodes.filter(node => 
-      (node.data.carbonFactor === undefined || 
-       node.data.carbonFactor === 0 || 
-       isNaN(node.data.carbonFactor) ||
-       node.data.completionStatus === 'manual-required') 
-    );
-    
-    console.log('找到需要匹配碳因子的节点数:', productNodes.length);
-    console.log('需要匹配的节点:', productNodes);
-    
-    if (productNodes.length === 0) {
-      message.info('所有节点都已有碳因子数据，无需AI匹配');
-      return;
-    }
-    
     // 显示加载中提示
-    const loading = message.loading('正在使用AI匹配碳因子...', 0);
     
-    // 准备节点数据
-    const nodesData = productNodes.map(node => ({
-      id: node.id,
-      productName: node.data.productName,
-      material: node.data.material || '',
-      lifecycleStage: node.data.lifecycleStage || '原材料',
-      weight: node.data.weight
-    }));
     
-    console.log('发送到API的节点数据:', nodesData);
-    
-    // 调用API
-    aiApi.matchCarbonFactors(nodesData)
-      .then(response => {
-        loading();
-        console.log('API响应:', response);
-        
-        if (response.data && response.data.nodes) {
-          const updatedNodes = response.data.nodes;
-          const matchStats = response.data.match_stats || {};
-          console.log('更新后的节点数据:', updatedNodes);
-          console.log('匹配统计信息:', matchStats);
+
+      // 遍历每个需要优化的节点
+
           
-          // 更新节点数据
-          setNodes(nds => {
-            const newNodes = nds.map(node => {
-              // 查找匹配的更新节点
-              const updatedNode = updatedNodes.find((n: any) => n.id === node.id);
-              if (updatedNode) {
-                console.log(`更新节点 ${node.id}`, {
-                  原碳因子: node.data.carbonFactor,
-                  新碳因子: updatedNode.carbonFactor,
-                  原状态: node.data.completionStatus,
-                  新状态: updatedNode.completionStatus
-                });
+
+      for (const node of AI_Nodes) {
+        try {        
+
+          // 如果节点是最终产品，则不进行优化
+          if (node.data.lifecycleStage === '最终产品') {
+            continue;
+          }
+
+          const nodeData = node.data as AllNodeData;
+
+          console.log('节点当前数据:', nodeData);
+
                 
-                // 更新节点的碳因子和状态
-                const carbonFactor = updatedNode.carbonFactor || node.data.carbonFactor || 0;
-                const completionStatus = updatedNode.completionStatus || 'manual-required';
-                const dataSource = updatedNode.dataSource || node.data.dataSource;
-                
-                // 计算碳足迹
-                const weight = node.data.weight || 0;
-                const carbonFootprint = weight * carbonFactor;
-                
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    carbonFactor,
-                    completionStatus,
-                    dataSource,
-                    carbonFootprint
-                  }
-                };
-              }
-              return node;
-            });
+          // message.loading(`开始优化节点: ${node.data.lifecycleStage} (${nodeData.productName})`, 5000);
+          const loadingMessage = message.loading(`开始优化节点: ${node.data.lifecycleStage} (${nodeData.productName})`, 0);
+          const stage = nodeData.lifecycleStage;
+          let response;
+          
+          // 根据生命周期阶段调用对应的API
+          switch (stage) {
+            case '原材料':
+            case 'raw_material':
+              console.log('调用原材料优化API');
+              response = await aiApi.optimizeRawMaterialNode(nodeData);
+              break;
+            case '分销和储存':
+            case 'distribution':
+              console.log('调用分销优化API');
+              response = await aiApi.optimizeDistributionNode(nodeData);
+              break;
+            case '生产制造':
+            case 'manufacturing':
+              console.log('调用生产制造优化API');
+              response = await aiApi.optimizeManufacturingNode(nodeData);
+              break;
+            case '产品使用':
+            case 'usage':
+              console.log('调用产品使用优化API');
+              response = await aiApi.optimizeUsageNode(nodeData);
+              break;
+            case '废弃处置':
+            case 'disposal':
+              console.log('调用废弃处置优化API');
+              response = await aiApi.optimizeDisposalNode(nodeData);
+              break;
+            default:
+              console.warn(`未知的生命周期阶段: ${stage}`);
+              continue;
+          }
+
+          console.log('API响应:', response);
+
+          if (response && response.data && response.data.status === 'success' && response.data.data) {
+            // 更新节点数据
+            loadingMessage();
             
-            // 更新完节点后，重新计算最终产品的碳排放量
-            let finalProductNodes = newNodes.filter(node => node.id.includes('product-'));
-            if (finalProductNodes.length > 0) {
-              // 重新计算所有源节点的总碳排放
-              const totalCarbonFootprint = newNodes
-                .filter(node => !node.id.includes('product-'))
-                .reduce((total, node) => total + (node.data.carbonFootprint || 0), 0);
-              
-              console.log('重新计算最终产品碳排放:', totalCarbonFootprint);
-              
-              // 更新最终产品节点的碳排放量
-              finalProductNodes.forEach(finalNode => {
-                const idx = newNodes.findIndex(n => n.id === finalNode.id);
-                if (idx !== -1) {
-                  newNodes[idx] = {
-                    ...finalNode,
-                    data: {
-                      ...finalNode.data,
-                      carbonFootprint: totalCarbonFootprint,
-                      dataSource: '累加计算',
-                      completionStatus: 'completed'
-                    }
+            // 显示成功消息
+            message.success(`节点 ${nodeData.productName} 优化完成`);
+            
+
+            const updatedData = response.data.data;
+            console.log('优化后的数据:', updatedData);
+            
+            // 更新节点数据
+            Object.assign(nodeData, {
+              weight: updatedData.weight,
+              carbonFactor: updatedData.carbonFactor,
+              carbonFootprint: updatedData.carbonFootprint,
+              dataSource: updatedData.dataSource,
+              uncertainty: updatedData.uncertainty,
+              verificationStatus: updatedData.verificationStatus,
+              completionStatus: "ai-supplemented",
+              optimizationExplanation: updatedData.optimizationExplanation,
+              uncertaintyScore: updatedData.uncertaintyScore,
+              uncertaintyScoreUnit: updatedData.uncertaintyScoreUnit,
+              uncertaintyFactors: updatedData.uncertaintyFactors,
+              supplier: updatedData.supplier,
+              emissionFactor: updatedData.emissionFactor,
+              calculationMethod: updatedData.calculationMethod,
+              applicableStandard: updatedData.applicableStandard,
+              certaintyPercentage: updatedData.certaintyPercentage,
+              recommendations: updatedData.recommendations || [],
+              aiReasoning: updatedData.aiReasoning,
+              aiRecommendation: updatedData.aiRecommendation,
+              energyConsumption: updatedData.energyConsumption,
+              energyType: updatedData.energyType,
+              processEfficiency: updatedData.processEfficiency,
+              wasteGeneration: updatedData.wasteGeneration,
+              waterConsumption: updatedData.waterConsumption,
+              recycledMaterialPercentage: updatedData.recycledMaterialPercentage,
+              productionCapacity: updatedData.productionCapacity,
+              machineUtilization: updatedData.machineUtilization,
+              qualityDefectRate: updatedData.qualityDefectRate,
+              processTechnology: updatedData.processTechnology,
+              manufacturingStandard: updatedData.manufacturingStandard,
+              automationLevel: updatedData.automationLevel,
+              startPoint: updatedData.startPoint,
+              endPoint: updatedData.endPoint,
+              vehicleType: updatedData.vehicleType,
+              fuelEfficiency: updatedData.fuelEfficiency,
+              loadFactor: updatedData.loadFactor,
+              transportationMode: updatedData.transportationMode,
+              transportationDistance: updatedData.transportationDistance,
+              packagingMaterial: updatedData.packagingMaterial,
+              packagingWeight: updatedData.packagingWeight,
+              warehouseEnergy: updatedData.warehouseEnergy,
+              storageTime: updatedData.storageTime,
+              storageConditions: updatedData.storageConditions,
+              distributionNetwork: updatedData.distributionNetwork,
+              lifespan: updatedData.lifespan,
+              energyConsumptionPerUse: updatedData.energyConsumptionPerUse,
+              waterConsumptionPerUse: updatedData.waterConsumptionPerUse,
+              consumablesUsed: updatedData.consumablesUsed,
+              consumablesWeight: updatedData.consumablesWeight,
+              usageFrequency: updatedData.usageFrequency,
+              maintenanceFrequency: updatedData.maintenanceFrequency,
+              repairRate: updatedData.repairRate,
+              userBehaviorImpact: updatedData.userBehaviorImpact,
+              efficiencyDegradation: updatedData.efficiencyDegradation,
+              standbyEnergyConsumption: updatedData.standbyEnergyConsumption,
+              usageLocation: updatedData.usageLocation,
+              usagePattern: updatedData.usagePattern,
+              recyclingRate: updatedData.recyclingRate,
+              landfillPercentage: updatedData.landfillPercentage,
+              incinerationPercentage: updatedData.incinerationPercentage,
+              compostPercentage: updatedData.compostPercentage,
+              reusePercentage: updatedData.reusePercentage,
+              hazardousWasteContent: updatedData.hazardousWasteContent,
+              biodegradability: updatedData.biodegradability,
+              disposalEnergyRecovery: updatedData.disposalEnergyRecovery,
+              transportToDisposal: updatedData.transportToDisposal,
+              endOfLifeTreatment: updatedData.endOfLifeTreatment,
+              recyclingEfficiency: updatedData.recyclingEfficiency,
+              dismantlingDifficulty: updatedData.dismantlingDifficulty,
+            });
+
+            // 更新节点显示
+            node.data.label = `${nodeData.productName} (${nodeData.carbonFootprint.toFixed(2)} kgCO2e)`;
+            
+            // 更新节点样式
+            if (nodeData.completionStatus === 'AI补充') {
+              node.style = { ...node.style, backgroundColor: '#e6f7ff' };
+            } else {
+              node.style = { ...node.style, backgroundColor: '#fff7e6' };
+            }
+
+            // 更新节点状态
+            setNodes(nds => 
+              nds.map(n => {
+                if (n.id === node.id) {
+                  return {
+                    ...n,
+                    data: nodeData,
+                    style: node.style
                   };
                 }
-              });
-            }
-            
-            return newNodes;
-          });
-          
-          // 显示成功信息
-          message.success(`成功为${updatedNodes.length}个节点匹配碳因子`);
-          
-          // 显示匹配统计信息
-          if (matchStats && Object.keys(matchStats).length > 0) {
-            // 构建匹配结果摘要
-            const { db_matched = 0, ai_matched = 0, manual_required = 0, total = 0 } = matchStats;
-            const match_sources = matchStats.match_sources || {};
-            
-            // 创建可视化的匹配来源统计信息
-            const matchSourceItems = Object.entries(match_sources).map(([source, count]) => (
-              `${source}: ${count}个节点`
-            )).join('\n');
-            
-            // 使用Modal显示匹配结果统计
-            Modal.info({
-              title: '碳因子匹配结果统计',
-              content: (
-                <div>
-                  <p>匹配节点总数: <strong>{total}</strong>个</p>
-                  <p>数据库匹配节点: <strong>{db_matched}</strong>个</p>
-                  <p>AI生成节点: <strong>{ai_matched}</strong>个</p>
-                  <p>需要人工介入节点: <strong>{manual_required}</strong>个</p>
-                  <p>数据来源明细:</p>
-                  <pre style={{ maxHeight: '200px', overflow: 'auto' }}>
-                    {matchSourceItems}
-                  </pre>
-                </div>
-              ),
-              width: 500,
-            });
+                return n;
+              })
+            );
+
+
+            // 重新计算总碳足迹
+            calculateTotalCarbonFootprint();
+
+            // 添加一个小延迟，让用户能看到每个节点的更新
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+          } else {
+            console.warn(`节点 ${node.id} 优化失败:`, response);
+            message.error(`节点 ${nodeData.productName} 优化失败`);
           }
-        } else {
-          console.error('API响应格式错误:', response);
-          message.error('匹配碳因子失败：API响应格式错误');
-        }
-      })
-      .catch(error => {
-        loading();
-        console.error('匹配碳因子时出错:', error);
-        if (error.response) {
-          console.error('错误状态码:', error.response.status);
-          console.error('错误详情:', error.response.data);
-        }
-        message.error('匹配碳因子失败：' + (error.response?.data?.detail || error.message));
-      });
+          // 更新节点状态
+          setNodes([...nodes]);
+          // 关闭加载提示
+          setIsLoading(false);
+          // 显示成功消息
+          // 重新计算总碳足迹
+          calculateTotalCarbonFootprint();
+        } catch (error) {
+          console.error('AI优化失败:', error);
+          setIsLoading(false);
+          message.error('AI优化失败，请重试');
+
+
+      }
+    
+
+    }
   };
   
   // 渲染特定生命周期阶段的属性
@@ -3107,18 +3198,34 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
     
     switch (lifecycleStage) {
       case '原材料':
+        const productData = selectedNode.data as ProductNodeData;
+
         return (
           <>
             <h4 className="section-title">原材料阶段属性</h4>
+            <Form.Item label="数量">
+              <Input
+                value={productData.quantity}
+                onChange={(e) => updateNodeData('quantity', e.target.value)}
+              />
+            </Form.Item>
+
+            <Form.Item label="单位重量">
+              <Input
+                value={productData.weight_per_unit}
+                onChange={(e) => updateNodeData('weight_per_unit', e.target.value)}
+              />
+            </Form.Item>
+
             <Form.Item label="材料">
               <Input
-                value={selectedNode.data.material}
+                value={productData.material}
                 onChange={(e) => updateNodeData('material', e.target.value)}
               />
             </Form.Item>
             <Form.Item label="供应商">
               <Input
-                value={selectedNode.data.supplier}
+                value={productData.supplier}
                 onChange={(e) => updateNodeData('supplier', e.target.value)}
               />
             </Form.Item>
@@ -3356,6 +3463,7 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
                 />
               </Form.Item>
             )}
+
           </>
         );
         
@@ -3625,7 +3733,7 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
       ) : (
         // 如果是文件夹，显示文件夹操作菜单
         <>
-          <Menu.Item key="newFolder" icon={<FolderAddOutlined />}>新建文件夹</Menu.Item>
+          <Menu.Item key="newFolder" icon={<FolderOutlined />}>新建文件夹</Menu.Item>
           <Menu.Item key="upload" icon={<UploadOutlined />}>上传文件</Menu.Item>
           {!selectedFile?.isLeaf && (
             <>
@@ -3775,7 +3883,7 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
       setLifecycleAiProcessing(false);
     }
   };
-  
+
   // 调用大模型API进行生命周期文件规范化
   const callLLMForLifecycleStandardization = async (originalContent: string, stage: string): Promise<string> => {
     try {
@@ -4297,9 +4405,7 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
             applicableStandard: 'ISO 14040',
             completionStatus: '',
             carbonFactor: carbonFactor,
-            initWeight: estimatedWeight,
-            initCarbonFootprint: carbonFootprint,
-            initCarbonFactor: carbonFactor,
+            uncertaintyScore: 0,
             // 生产制造阶段特有字段
             energyConsumption: energy.consumption,
             energyType: energy.type,
@@ -4312,7 +4418,8 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
             qualityDefectRate: 0,
             processTechnology: '',
             manufacturingStandard: '',
-            automationLevel: ''
+            automationLevel: '',
+            
           }
         };
         
@@ -4358,8 +4465,8 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
         data: {
           label: productName || file.title || '生产制造',
           productName: productName || file.title || '生产制造',
-          weight: totalWeight || 10,
-          carbonFootprint: 500, // 默认碳足迹
+          weight: totalWeight ,
+          carbonFootprint: 0, // 默认碳足迹
           dataSource: '生产制造阶段文件',
           lifecycleStage: '生产制造',
           emissionFactor: '',
@@ -4369,9 +4476,7 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
           applicableStandard: 'ISO 14040',
           completionStatus: '已完成',
           carbonFactor: 50, // 默认碳因子
-          initWeight: totalWeight || 10,
-          initCarbonFootprint: 500,
-          initCarbonFactor: 50,
+          uncertaintyScore: 0,
           // 生产制造阶段特有字段
           energyConsumption: 0,
           energyType: '未知',
@@ -4384,7 +4489,8 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
           qualityDefectRate: 0,
           processTechnology: '',
           manufacturingStandard: '',
-          automationLevel: '低'
+          automationLevel: '低',
+          
         }
       };
       
@@ -4623,9 +4729,8 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
           applicableStandard: 'ISO 14040',
           completionStatus: '已完成',
           carbonFactor: carbonFactor,
-          initWeight: weight,
-          initCarbonFootprint: carbonFootprint,
-          initCarbonFactor: carbonFactor,
+          uncertaintyScore: 0,
+      
           // 分销和储存阶段特有字段
           transportationMode: transportationMode,
           transportationDistance: transportationDistance,
@@ -4947,9 +5052,7 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
           applicableStandard: 'ISO 14040',
           completionStatus: '已完成',
           carbonFactor: carbonFactor,
-          initWeight: weight,
-          initCarbonFootprint: carbonFootprint,
-          initCarbonFactor: carbonFactor,
+          uncertaintyScore: 0,
           // 产品使用阶段特有字段
           lifespan: lifespan,
           energyConsumptionPerUse: energyConsumptionPerUse,
@@ -4964,6 +5067,8 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
           standbyEnergyConsumption: 0, // 默认无待机能耗
           usageLocation: '室内', // 默认室内使用
           usagePattern: '日常使用' // 默认使用模式
+
+          
         }
       };
       
@@ -5222,9 +5327,8 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
           applicableStandard: 'ISO 14040',
           completionStatus: '已完成',
           carbonFactor: carbonFactor,
-          initWeight: weight,
-          initCarbonFootprint: carbonFootprint,
-          initCarbonFactor: carbonFactor,
+          uncertaintyScore: 0,
+       
           // 废弃处置阶段特有字段
           recyclingRate: recyclingRate,
           landfillPercentage: landfillPercentage,
@@ -5301,6 +5405,335 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
     message.success(`成功从废弃处置文件创建了${disposalNodes.length}个处置节点`);
   };
 
+  // 添加自动布局函数
+  const autoLayout = () => {
+    console.log('开始自动布局，当前节点数:', nodes.length);
+    
+    if (!nodes.length) {
+      message.warning('没有可布局的节点');
+      return;
+    }
+
+    // 定义生命周期阶段的顺序
+    const stageOrder = ['原材料', '生产制造', '分销和储存', '产品使用', '废弃处置'];
+    
+    // 找到最终产品节点（通常是最后一个节点）
+    const finalProductNode = nodes.find(node => 
+      node.data.lifecycleStage === '最终产品' 
+    );
+
+    if (!finalProductNode) {
+      message.warning('未找到最终产品节点，请确保有一个全生命周期或产品使用阶段的节点');
+      return;
+    }
+
+    console.log('找到最终产品节点:', finalProductNode);
+
+    // 计算每个阶段的节点
+    const stageNodes = stageOrder.reduce((acc, stage) => {
+      acc[stage] = nodes.filter(node => node.data.lifecycleStage === stage);
+      return acc;
+    }, {} as Record<string, any[]>);
+
+    console.log('各阶段节点:', stageNodes);
+
+    // 设置布局参数
+    const verticalSpacing = 300; // 垂直间距
+    const horizontalSpacing = 400; // 水平间距
+    const startX = 100; // 起始X坐标
+    const startY = 100; // 起始Y坐标
+
+    // 更新节点位置
+    const updatedNodes = nodes.map(node => {
+      const stage = node.data.lifecycleStage;
+      if (stage === '最终产品') {
+        // 最终产品节点放在最右侧
+        return {
+          ...node,
+          position: {
+            x: startX + (stageOrder.length - 1) * horizontalSpacing,
+            y: startY + (Object.values(stageNodes).reduce((acc, curr) => acc + curr.length, 0) / 2) * verticalSpacing
+          }
+        };
+      }
+
+      const stageIndex = stageOrder.indexOf(stage);
+      if (stageIndex === -1) return node;
+
+      const stageNodeIndex = stageNodes[stage].findIndex(n => n.id === node.id);
+      const nodesInStage = stageNodes[stage].length;
+      
+      // 计算节点位置
+      const x = startX + stageIndex * horizontalSpacing;
+      const y = startY + stageNodeIndex * verticalSpacing;
+
+      return {
+        ...node,
+        position: { x, y }
+      };
+    });
+
+    console.log('更新后的节点:', updatedNodes);
+
+    // 更新连接
+    const updatedEdges: Edge[] = [];
+    
+    // 首先连接到最终产品节点
+    stageOrder.forEach((stage, index) => {
+      const currentStageNodes = stageNodes[stage];
+      if (!currentStageNodes.length) return;
+
+      // 连接到最终产品节点
+      currentStageNodes.forEach(currentNode => {
+        updatedEdges.push({
+          id: `e${currentNode.id}-${finalProductNode.id}`,
+          source: currentNode.id,
+          target: finalProductNode.id,
+          type: 'smoothstep',
+          animated: true
+        });
+      });
+
+   
+    });
+
+    console.log('更新后的连接:', updatedEdges);
+
+    // 更新状态
+    setNodes(updatedNodes);
+    setEdges(updatedEdges);
+    
+    // 显示成功消息
+    message.success('自动布局完成！');
+  };
+
+  // 更新AI总结信息
+  const updateAiSummary = useCallback(() => {
+    if (!nodes || nodes.length === 0) {
+      setAiSummary(prev => ({...prev, credibilityScore: 0, missingLifecycleStages: [], optimizableNode: null, manualRequiredNodes: [], uncertainAiNodes: []}));
+      return;
+    }
+    
+    // 1. 计算可信度
+    let manual_finish_NodesCount = 0;
+    let aiNodesCount = 0;
+    let aiUncertaintySum = 0;
+    let manual_need_NodesCount = 0;
+
+    
+    nodes.forEach(node => {
+      if (node.data) {
+        if (node.data.completionStatus === 'completed') {
+          manual_finish_NodesCount++;
+        } else if (node.data.completionStatus === 'ai-supplemented') {
+          aiNodesCount++;
+          const certainty = 1 - (node.data.uncertaintyScore || 0) / 100;
+          aiUncertaintySum += certainty;
+        }else if (node.data.completionStatus === 'manual-required') {
+          manual_need_NodesCount++;
+        }
+      }
+    });
+    
+    const totalNodes = manual_finish_NodesCount + aiNodesCount + manual_need_NodesCount;
+    const credibilityScore = totalNodes > 0 ? 
+    (manual_finish_NodesCount + aiUncertaintySum) / totalNodes : 0;
+    
+    //log credibilityScore , manualNodesCount, aiNodesCount, needManualNodesCount
+    console.log('credibilityScore:', credibilityScore);
+    console.log('totalNodes:', totalNodes);
+    console.log('manual_finish_NodesCount:', manual_finish_NodesCount);
+    console.log('aiNodesCount:', aiNodesCount);
+    console.log('manual_need_NodesCount:', manual_need_NodesCount);
+    console.log('aiUncertaintySum:', aiUncertaintySum);
+    
+    // 2. 检查生命周期缺失
+    const lifecycle = ['原材料', '生产制造', '分销和储存', '产品使用', '废弃处置'];
+    const existingStages = new Set(nodes.map(node => node.data?.lifecycleStage).filter(Boolean));
+    const missingLifecycleStages = lifecycle.filter(stage => !existingStages.has(stage));
+    
+    // 3. 找出优化空间最大的节点
+    let optimizableNode: {
+      id: string;
+      label: string;
+      reason: string;
+    } | null = null;
+    let maxOptimizationPotential = 0;
+    
+    nodes.forEach(node => {
+      if (!node.data) return;
+      // 简单算法：数据完整性低且碳足迹高的节点优化空间大
+      const uncertainty = node.data.uncertaintyScore || 0;
+      const completeness = 1 - uncertainty / 100;
+                          
+      const carbonImpact = node.data.carbonFootprint || 0;
+      const optimizationPotential = (1 - completeness) * carbonImpact;
+      
+      if (optimizationPotential > maxOptimizationPotential) {
+        maxOptimizationPotential = optimizationPotential;
+        optimizableNode = {
+          id: node.id,
+          label: node.data.label || node.data.productName || '未命名节点',
+          reason: `完成度(${(completeness * 100).toFixed(0)}%), 碳足迹高(${carbonImpact.toFixed(2)} kgCO₂e)`
+        };
+      }
+    });
+    
+    setAiSummary(prev => ({
+      ...prev,
+      credibilityScore,
+      missingLifecycleStages,
+      optimizableNode,
+      manualRequiredNodes: nodes.filter(node => node.data.completionStatus === 'manual-required').map(node => ({
+        id: node.id,
+        label: node.data.label || node.data.productName || '未命名节点'
+      })),
+      uncertainAiNodes: nodes.filter(node => node.data.completionStatus === 'ai-supplemented' && node.data.uncertaintyScore > 10).map(node => ({
+        id: node.id,
+        label: node.data.label || node.data.productName || '未命名节点',
+        uncertaintyScore: node.data.uncertaintyScore
+      }))
+    }));
+  }, [nodes]);
+  
+  // 在节点变化或AI生成后更新总结
+  useEffect(() => {
+    updateAiSummary();
+  }, [nodes, updateAiSummary]);
+  
+  // 切换AI总结模块展开/折叠状态
+  const toggleAiSummaryExpand = () => {
+    setAiSummary(prev => ({...prev, isExpanded: !prev.isExpanded}));
+  };
+  
+  // AI总结展示组件
+  const renderAiSummary = () => {
+    const { credibilityScore, missingLifecycleStages, optimizableNode, manualRequiredNodes, uncertainAiNodes, isExpanded } = aiSummary;
+    const credibilityScorePercent = Math.round(credibilityScore * 100);
+    
+    return (
+      <div className={`ai-summary-module ${isExpanded ? 'expanded' : 'collapsed'}`}>
+        <div className="ai-summary-header" onClick={toggleAiSummaryExpand}>
+          <h4>AI工作流分析</h4>
+          {isExpanded ? <UpOutlined /> : <DownOutlined />}
+        </div>
+        
+        {isExpanded && (
+          <div className="ai-summary-content" style={{ 
+            maxHeight: '1000px', 
+            overflowY: 'auto', 
+            paddingRight: '5px' 
+          }}>
+            <div className="summary-item">
+              <div className="summary-label">数据可信度:</div>
+              <div 
+                style={{
+                  fontSize: '2.5rem',
+                  fontWeight: 'bold',
+                  color: credibilityScorePercent >= 90 ? '#52c41a' : 
+                         credibilityScorePercent >= 60 ? '#faad14' : 
+                         '#f5222d',
+                  textAlign: 'center',
+                  marginTop: '5px'
+                }}
+              >
+                {credibilityScorePercent}
+              </div>
+            </div>
+            
+            <div className="summary-item">
+              <div className="summary-label">生命周期完整性:</div>
+              {missingLifecycleStages.length > 0 ? (
+                <div className="missing-stages">
+                  <Tag color="error">缺失{missingLifecycleStages.length}个阶段</Tag>
+                  <div className="stage-list">
+                    {missingLifecycleStages.map(stage => (
+                      <Tag key={stage} color="warning">{stage}</Tag>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <Tag color="success">请先拖拉BOM到工作台中</Tag>
+              )}
+            </div>
+            
+            {optimizableNode && (
+              <div className="summary-item">
+                <div className="summary-label">优化建议:</div>
+                <div className="optimization-target">
+                  <Button 
+                    type="link" 
+                    size="small" 
+                    onClick={() => {
+                      const node = nodes.find(n => n.id === optimizableNode.id);
+                      if (node) {
+                        setSelectedNode(node);
+                        setSelectedNodeId(node.id);
+                      }
+                    }}
+                  >
+                    {optimizableNode.label}
+                  </Button>
+                  <div className="optimization-reason">{optimizableNode.reason}</div>
+                </div>
+              </div>
+            )}
+            {manualRequiredNodes.length > 0 && (
+              <div className="summary-item">
+                <div className="summary-label">需要人工介入的节点:</div>
+                <div className="manual-nodes">
+                  {manualRequiredNodes.map(node => (
+                    <Button 
+                      key={node.id}
+                      type="link"
+                      size="small" 
+                      onClick={() => {
+                        const nodeObj = nodes.find(n => n.id === node.id);
+                        if (nodeObj) {
+                          setSelectedNode(nodeObj);
+                          setSelectedNodeId(nodeObj.id);
+                        }
+                      }}
+                      style={{ margin: '2px', padding: '0 8px' }}
+                    >
+                      <Tag color="error">{node.label}</Tag>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {uncertainAiNodes.length > 0 && (
+              <div className="summary-item">
+                <div className="summary-label">AI不确定的节点:</div>
+                <div className="uncertain-nodes">
+                  {uncertainAiNodes.map(node => (
+                    <Button
+                      key={node.id}
+                      type="link"
+                      size="small"
+                      onClick={() => {
+                        const nodeObj = nodes.find(n => n.id === node.id);
+                        if (nodeObj) {
+                          setSelectedNode(nodeObj);
+                          setSelectedNodeId(nodeObj.id);
+                        }
+                      }}
+                      style={{ margin: '2px', padding: '0 8px' }}
+                    >
+                      <Tag color="warning">
+                        {node.label} (不确定性: {Math.round((node.uncertaintyScore))}%)
+                      </Tag>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // 组件返回的JSX结构
   return (
     <Layout className="editor-layout">
@@ -5323,6 +5756,15 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
           </div>
         </div>
         <div className="header-right">
+          <Button 
+            type="primary" 
+            icon={<ReloadOutlined />} 
+            onClick={autoLayout}
+            style={{ marginLeft: '8px' }}
+          >
+            自动布局
+          </Button>
+
           <Button 
             type="primary"
             icon={<ThunderboltOutlined />}
@@ -5407,6 +5849,12 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
             onMouseDown={handleResizeStart}
           ></div>
         </Sider>
+        
+        {/* 添加AI总结模块到面板右侧 */}
+        <div className="ai-summary-floating-container">
+          {renderAiSummary()}
+        </div>
+        
         <Content 
           className="editor-content"
           onDragOver={handleDragOver}
@@ -5629,13 +6077,26 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
                   <Select
                     value={selectedNode?.data.uncertainty}
                     style={{ width: '100%' }}
-                    onChange={(value) => updateNodeData('uncertainty', value)}
+                    disabled={true}
+                    className="readonly-input"
                   >
                     <Option value="低">低 (10%以内)</Option>
-                    <Option value="中">中 (10-30%)</Option>
-                    <Option value="高">高 (30%以上)</Option>
+                    <Option value="中">中 (10-40%)</Option>
+                    <Option value="高">高 (40%以上)</Option>
                   </Select>
                 </Form.Item>
+                <Form.Item label="不确定性分数">
+                  <InputNumber
+                    value={selectedNode?.data.uncertaintyScore}
+                    style={{ width: '100%' }}
+                    min={0}
+                    max={100}
+                    disabled={true}
+                    readOnly={true}
+                    className="readonly-input"
+                  />
+                </Form.Item>
+                
                 <Form.Item label="完成状态">
                   <Select
                     value={selectedNode?.data.completionStatus}

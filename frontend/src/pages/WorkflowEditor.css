@@ -962,4 +962,116 @@ body.resizing {
 
 .editor-content[style*="background-color: rgba(0, 0, 0, 0.02)"] .drop-message {
   display: block;
+}
+
+/* AI总结浮动容器 */
+.ai-summary-floating-container {
+  position: absolute;
+  left: calc(250px); /* 默认左侧Sider宽度 */
+  top: 20px;
+  width: 280px;
+  z-index: 90;
+  transition: left 0.1s ease;
+}
+
+/* 当左侧面板宽度变化时，AI总结容器位置同步变化 */
+@media (min-width: 768px) {
+  .editor-sider[style*="width"] + .ai-summary-floating-container {
+    left: calc(var(--sider-width, 250px) + 1px);
+  }
+}
+
+/* 优化AI总结模块样式，使其作为浮动元素 */
+.ai-summary-module {
+  margin: 0;
+  background-color: #ffffff;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid #e8e8e8;
+  border-left: none;
+  width: 350px;
+
+}
+
+.ai-summary-module.expanded {
+  max-height: 1000px;
+}
+
+.ai-summary-module.collapsed {
+  max-height: 40px;
+}
+
+.ai-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #f0f7ff;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #e6f0ff;
+}
+
+.ai-summary-header:hover {
+  background-color: #e6f0ff;
+}
+
+.ai-summary-header h4 {
+  margin: 0;
+  font-size: 14px;
+  color: #1890ff;
+  font-weight: 600;
+}
+
+.ai-summary-content {
+  padding: 12px;
+}
+
+.summary-item {
+  margin-bottom: 12px;
+}
+
+.summary-item:last-child {
+  margin-bottom: 0;
+}
+
+.summary-label {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.missing-stages {
+  margin-top: 4px;
+}
+
+.stage-list {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.optimization-target {
+  background-color: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-top: 4px;
+}
+
+.optimization-target button {
+  padding: 0;
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.optimization-reason {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+  font-style: italic;
 } 

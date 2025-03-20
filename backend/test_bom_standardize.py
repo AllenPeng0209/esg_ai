@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 测试使用真实API的BOM标准化
-async def call_openai_api_directly(messages: List[Dict[str, str]], model: str = "deepseek-chat") -> Dict[str, Any]:
+async def call_ai_service_api_directly(messages: List[Dict[str, str]], model: str = "deepseek-chat") -> Dict[str, Any]:
     """直接调用DeepSeek API"""
     url = OPENAI_API_URL
     
@@ -127,7 +127,7 @@ async def test_bom_standardize_with_real_api():
         ]
         
         # 直接调用OpenAI API
-        response = await call_openai_api_directly(messages)
+        response = await call_ai_service_api_directly(messages)
         
         standardized_bom = response["choices"][0]["message"]["content"].strip()
         

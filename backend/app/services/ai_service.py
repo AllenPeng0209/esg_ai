@@ -5,7 +5,13 @@ import time
 import copy
 import re
 from typing import List, Dict, Any, Optional
+from fastapi import Depends
+from sqlalchemy.orm import Session
 from app.config import settings
+from app.database import get_db
+from app.schemas.user import User
+from app.api import deps
+import json
 
 # 设置日志
 logging.basicConfig(level=logging.INFO)
@@ -50,38 +56,7 @@ def get_api_config():
     else:  # 默认或mock
         return "", "", ""
 
-# 模拟响应数据
-def get_mock_response(prompt: str = None) -> str:
-    """获取模拟响应"""
-    # 如果是BOM标准化请求
-    if prompt and "BOM" in prompt and "物料清单" in prompt:
-        return """组件ID,组件名称,材料类型,重量(g),供应商,碳排放因子(kgCO2e/kg)
-1,有机小麦粉,小麦,11779.78,未知供应商,0.8
-2,有机橄榄油,植物油,4831.4,Analysis and trends for Life Cycle Assessment of olive oil production,3.2
-3,有机白砂糖,糖类,7445.04,碳中和产品，上游过程已实现碳中和,1.5
-4,有机麦芽糖浆,糖浆,3793.17,实景数据,2.1
-5,有机大豆油,植物油,1243.55,实景数据,3.8
-6,有机白芸豆,豆类,3381.54,实景数据,0.7
-7,有机红芸豆,豆类,1713.61,实景数据,0.7
-8,有机南瓜籽仁,坚果,512.09,实景数据,0.9
-9,有机芝麻,种子,395.28,实景数据,1.2
-10,有机黑芝麻,种子,341.39,实景数据,1.2"""
-    
-    # 如果是碳足迹计算请求
-    if prompt and "碳足迹" in prompt and "计算" in prompt:
-        return str(random.uniform(10.0, 30.0))
-    
-    # 通用响应
-    responses = [
-        "你好！这是一个测试回覆。",
-        "你好，我是AI助手，很高兴为您服务。",
-        "这是一个模拟的API响应，API调用成功！",
-        "测试消息已收到，这是一个自动回覆。",
-        "问候！这是来自模拟API的回应。"
-    ]
-    return random.choice(responses)
-
-async def call_openai_api(messages: List[Dict[str, str]], model: str = None, temperature: float = 0.7, max_tokens: int = 2000) -> Dict[str, Any]:
+async def call_ai_service_api(messages: List[Dict[str, str]], model: str = None, temperature: float = 0.1, max_tokens: int = 2000) -> Dict[str, Any]:
     """
     调用AI API处理请求
     """
@@ -150,6 +125,12 @@ async def call_openai_api(messages: List[Dict[str, str]], model: str = None, tem
     logger.info(f"请求模型: {model}")
     logger.info(f"消息数量: {len(messages)}")
     
+
+    
+    logger.info(f"payload: {payload}")
+
+
+
     try:
         async with httpx.AsyncClient() as client:
             logger.info(f"开始调用DeepSeek API - 时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -211,33 +192,6 @@ async def call_openai_api(messages: List[Dict[str, str]], model: str = None, tem
         logger.info("由于未知错误，自动降级到模拟模式")
         return get_mock_response_as_json(messages, model)
 
-# 辅助函数：生成模拟响应的JSON格式
-def get_mock_response_as_json(messages: List[Dict[str, str]], model: str) -> Dict[str, Any]:
-    """生成模拟响应的JSON格式"""
-    user_message = next((msg["content"] for msg in messages if msg["role"] == "user"), "")
-    mock_content = get_mock_response(user_message)
-    
-    return {
-        "id": "mock-response-" + str(random.randint(1000, 9999)),
-        "object": "chat.completion",
-        "created": int(time.time()),
-        "model": model + "-mock",
-        "choices": [
-            {
-                "message": {
-                    "role": "assistant",
-                    "content": mock_content
-                },
-                "finish_reason": "stop",
-                "index": 0
-            }
-        ],
-        "usage": {
-            "prompt_tokens": sum(len(msg.get("content", "")) // 4 for msg in messages),
-            "completion_tokens": len(mock_content) // 4,
-            "total_tokens": sum(len(msg.get("content", "")) // 4 for msg in messages) + len(mock_content) // 4
-        }
-    }
 
 async def standardize_bom(original_content: str) -> str:
     """
@@ -262,31 +216,18 @@ async def standardize_bom(original_content: str) -> str:
     1. 包含以下字段：{standard_bom_header}
     2. 通过语义理解识别原始数据中对应的信息
     3. 对于材料类型，仅当原始数据明确包含此信息时才填写，否则保留空值
-    4. 原始数据中如果有重量信息，请填入"重量(g)"列
-    5. 原始数据中如果没有重量信息但有数量信息，需要执行以下操作：
-       a. 根据材料名称和类型，推算出该材料的单位重量(g/单位)
-       b. 将单位重量与数量相乘，计算出总重量
-       c. 将计算出的总重量填入"重量(g)"列
-       d. 在"AI估算"列中注明"单位重量: [估算的单位重量]g/单位, 数量: [数量], 总重量: [单位重量×数量]g, 依据: [估算依据]"
-    6. 如果既有重量信息又有数量信息，优先使用重量信息填入"重量(g)"列
-    7. 保持数据的完整性，不要遗漏任何组件
-    8. 对于数值型字段，维持合理精度（小数点后2位）
+    4. 如果既有重量信息又有数量信息，优先使用重量信息填入"重量(g)"列
+    5. 保持数据的完整性，不要遗漏任何组件
+    6. 对于数值型字段，维持合理精度（小数点后2位）
 
-    材料重量推算要求：
-    1. 基于材料名称和类型（如果有）进行合理的单位重量估算
-    2. 使用常见工业标准和材料密度数据作为参考
-    3. 对于不确定的情况，提供合理的估计值
-    4. 所有重量单位使用克(g)
-    5. 提供简短的估算依据，说明推理过程
-    6. 必须计算总重量 = 单位重量 × 数量，并将总重量填入"重量(g)"列
+    
 
     注意：
-    - 输出格式必须包含"重量(g)"列和"AI估算"列
-    - 对于已有明确重量信息的材料，不需要在"AI估算"列填写内容
-    - 对于需要推算重量的材料，必须在"AI估算"列中说明单位重量、数量、总重量和估算依据
-    - "重量(g)"列必须填写总重量值，而不是单位重量
+    
     - 对于原始数据中不存在的信息，请在输出中保留为空，不要生成或推测任何值
     - 特别是碳排放因子等计算值，除非原始数据中明确包含，否则不应自行填充
+    - 请务必看清每个材料的单位, 如果是数量单位, 重量就一定不要填
+    - 不要把数量填到供应商那行, 注意行列对齐问题！！
 
     原始BOM内容：
     {original_content}
@@ -300,25 +241,12 @@ async def standardize_bom(original_content: str) -> str:
     
     你的主要任务是：
     1. 识别原始数据中已有的信息并映射到标准格式
-    2. 确保输出格式包含"重量(g)"列和"AI估算"列
-    3. 如果原始数据中有重量信息，填入"重量(g)"列
-    4. 如果原始数据中没有重量信息但有数量信息：
-       - 根据材料名称和类型推算单位重量(g/单位)
-       - 计算总重量 = 单位重量 × 数量
-       - 将总重量填入"重量(g)"列
-       - 在"AI估算"列中注明单位重量、数量、总重量和估算依据
-    5. 保留原始数据的完整性，不添加不存在的信息
-    6. 对于原始数据中不存在的字段，在输出中保留为空
-    7. 不要推测或估算碳排放因子等其他数值
+    2. 如果原始数据中有重量信息，填入"重量(g)"列
+    3. 保留原始数据的完整性，不添加不存在的信息
+    4. 对于原始数据中不存在的字段，在输出中保留为空
+    5. 不要推测或估算碳排放因子等其他数值
     
-    在推算材料重量时，请基于以下原则：
-    1. 使用材料科学知识和工业标准
-    2. 考虑材料的典型密度和常见规格
-    3. 提供合理的单位重量估算
-    4. 计算总重量 = 单位重量 × 数量
-    5. 简要说明估算依据
-    6. 请务必保证重量（g）, 每行都有值, 且推算正确
-    
+
     所有输出必须是结构化的CSV格式，只返回处理后的数据，不要添加任何解释或额外文本。
     """
     
@@ -340,7 +268,7 @@ async def standardize_bom(original_content: str) -> str:
         logger.info(f"消息数量: {len(messages)}")
         
         # 调用API获取响应
-        response = await call_openai_api(messages, temperature=0.2, max_tokens=4000)
+        response = await call_ai_service_api(messages, temperature=0.2, max_tokens=4000)
         standardized_bom = response["choices"][0]["message"]["content"].strip()
         
         end_time = time.time()
@@ -381,7 +309,7 @@ async def calculate_product_carbon_footprint(product_data: Dict[str, Any]) -> fl
         logger.info("开始计算产品碳足迹")
         
         # 调用API获取响应
-        response = await call_openai_api(messages, temperature=0.2)
+        response = await call_ai_service_api(messages, temperature=0.2)
         content = response["choices"][0]["message"]["content"].strip()
         
         # 尝试从响应中提取数值
@@ -499,7 +427,7 @@ async def match_carbon_factors(nodes: List[Dict[str, Any]]) -> List[Dict[str, An
         # 调用DeepSeek API
         try:
             logger.info(f"向DeepSeek API发送{len(node_group)}个{stage}阶段的产品信息")
-            response = await call_openai_api(
+            response = await call_ai_service_api(
                 messages=[system_message, user_message],
                 temperature=0.2,  # 降低温度以获得更确定的回答
                 max_tokens=4000  # 增加最大token数以处理多个产品
@@ -760,7 +688,7 @@ async def standardize_lifecycle_document(content: str, stage: str) -> str:
         logger.info(f"使用API模型: {model}")
         
         # 调用API获取响应
-        response = await call_openai_api(messages, temperature=0.2)
+        response = await call_ai_service_api(messages, temperature=0.2)
         standardized_content = response["choices"][0]["message"]["content"].strip()
         
         end_time = time.time()
@@ -846,7 +774,7 @@ async def decompose_product_materials(product_data: Dict[str, Any]) -> Dict[str,
     
     try:
         # 调用AI获取拆解结果
-        response = await call_openai_api(messages, temperature=0.2)
+        response = await call_ai_service_api(messages, temperature=0.2)
         ai_response = response["choices"][0]["message"]["content"].strip()
         
         # 解析AI回应，提取拆解后的子材料
@@ -1016,3 +944,828 @@ def parse_decomposed_materials(ai_response: str, total_weight: float) -> List[Di
             "carbon_footprint": (total_weight / 1000) * 2.5,
             "data_source": "无法解析原始回应，使用估算值"
         }] 
+
+
+
+async def optimize_raw_material_nodes(
+    nodes: List[Dict[str, Any]],
+ 
+):
+    """
+    优化原材料节点的参数，使用DeepSeek API
+    """
+    logger.info(f"开始优化{len(nodes)}个原材料节点，使用DeepSeek API")
+
+    # 创建节点副本以避免修改原始数据
+    updated_nodes = copy.deepcopy(nodes)
+    
+    
+    # 准备向DeepSeek发送的产品列表和相关信息
+    products_info = []
+    for node in updated_nodes:
+        product_info = {
+            "id": node.get('id'),
+            "name": node.get('productName', ''),
+            "material": node.get('material', ''),
+            "weight": node.get('weight', 0),
+            "counts": node.get('counts', ''),
+            "weight_per_unit": node.get('weight_per_unit', ''),
+            "carbonFactor": node.get('carbonFactor', 0),
+            "carbonFootprint": node.get('carbonFootprint', 0),
+            "dataSource": node.get('dataSource', ''),
+            "uncertainty": node.get('uncertainty', ''),
+            "verificationStatus": node.get('verificationStatus', ''),
+            "completionStatus": node.get('completionStatus', '')
+        }
+        products_info.append(product_info)
+    
+    # 构建提示信息
+    system_message = {
+        "role": "system", 
+        "content": """
+        你是一位产品专家, 碳足迹专家，熟悉各种碳足迹因子
+        请帮助用户优化原材料节点的参数，包括：
+        1. 碳排放因子（CO2e/kg）
+        2. 产品单位重量(kg)（如果单位重量为0，请根据产品名称和材料类型提供合理的参数值）
+        3. 产品总重量(kg)（如果总重量为0，请根据单位重量与数量（quantity计算）
+        4. 数据来源（具体需要提供国际知名碳排因子数据库, 完整展开年份与具体报告名称)
+        7. 不确定性评估(百分比), 如果你觉得这个碳因子高概率可用(通过iso报告标准检测), 不确定性请给10%以内, 如果觉得基本可用, 不确定性请给40%以内, 如果觉得这个碳因子不确定性很高, 请给40%以上
+        6. 不确定的因素分析（文字解释）
+
+        注意：
+        1. 请基于产品名称和材料类型提供合理的参数值，并说明估算依据。
+        2. 如果已经有weight, 请不要填weight_per_unit
+        3. 如果已经有weight, 请不要填quantity
+        4. 请不要填carbonFootprint !! （要后续用计算机直接根据weight还有carbonFactor计算出来）
+        5. 请一定要填carbonFactor, weight(如果没有就推算出来) 
+        6. 请一定要填weight(如果没有就推算出来) 
+        7. 提供详细的优化说明
+        8. 评估数据的不确定性
+        9. 列出影响不确定性的具体因素
+        10. 根据数据质量设置适当的验证状态
+        11. 根据不确定性评分设置完成状态（>=70%为completed，否则为manual-required）
+        12. 将aiReasoning字段加到json中, 给简短的总结, 并且加上如果想要得到更精准的碳足迹, 需要优先填当前缺失的值
+        
+        确保输入输出都是相同的JSON格式的结果，不要添加其他解释。"""
+    }
+    import re
+    import json
+    nodes_text = json.dumps(nodes, ensure_ascii=False, indent=2)
+    user_message = {"role": "user", "content": nodes_text}
+    
+    # 调用DeepSeek API
+    try:
+        logger.info(f"向DeepSeek API发送{len(updated_nodes)}个原材料节点信息")
+        response = await call_ai_service_api(
+            messages=[system_message, user_message],
+            temperature=0,
+            max_tokens=4000
+        )
+
+        # 解析API返回的结果
+        if response and 'choices' in response and len(response['choices']) > 0:
+            content = response['choices'][0]['message']['content']
+            
+            # 从回应中提取JSON部分
+            
+            # 尝试找到JSON部分
+            json_match = re.search(r'```json\s*([\s\S]*?)\s*```', content)
+            json_str = json_match.group(1) if json_match else content
+            
+            # 尝试解析JSON
+            try:
+                results = json.loads(json_str)
+                logger.info(f"成功解析DeepSeek API返回的JSON数据，包含{len(results)}个产品")
+                
+                # 更新节点数据
+                for result in results:
+                    # 查找对应节点
+                    node_id = result.get("id")
+                    node_index = next((idx for idx, node in enumerate(updated_nodes) 
+                                    if str(node.get('id')) == str(node_id)), None)
+                    
+                    if node_index is not None:
+                        # 更新节点数据
+                        updated_nodes[node_index].update({
+                            'weight': float(result.get('weight', 0)),
+                            'weight_per_unit': result.get('weight_per_unit', ''),
+                            'carbonFactor': result.get('carbonFactor', 0),
+                            'carbonFactorUnit': result.get('carbonFactorUnit', 'kg CO2e/kg'),
+                            'carbonFootprint': result.get('weight', 0) * result.get('carbonFactor', 0),
+                            'dataSource': f"AI优化 - DeepSeek ({result.get('dataSource', '专家估算')})",
+                            'uncertainty': result.get('uncertainty'),
+                            'verificationStatus': "未验证",
+                            'completionStatus': "AI补充",
+                            'optimizationExplanation': result.get('optimizationExplanation', ''),
+                            'uncertaintyScore': float(result.get('uncertaintyScore', 0)),
+                            'uncertaintyScoreUnit': result.get('uncertaintyScoreUnit', 'percentage'),
+                            'uncertaintyFactors': result.get('uncertaintyFactors', []),
+                            'aiReasoning': result.get('aiReasoning', '')
+                        })
+                        
+                        logger.info(f"节点 {node_id} 已更新参数")
+                    else:
+                        logger.warning(f"未找到ID为 {node_id} 的节点")
+            
+            except json.JSONDecodeError as e:
+                logger.error(f"解析DeepSeek API返回的JSON时出错: {str(e)}")
+                # 如果JSON解析失败，标记所有节点需要人工介入
+                for node in updated_nodes:
+                    node['completionStatus'] = 'manual-required'
+                    node['dataSource'] = '需要人工介入 - API返回解析失败'
+        else:
+            logger.error(f"DeepSeek API返回的响应格式不正确: {response}")
+            # 标记所有节点需要人工介入
+            for node in updated_nodes:
+                node['completionStatus'] = 'manual-required'
+                node['dataSource'] = '需要人工介入 - API响应格式错误'
+            
+    except Exception as e:
+        logger.error(f"调用DeepSeek API时出错: {str(e)}")
+        # 标记所有节点需要人工介入
+        for node in updated_nodes:
+            node['completionStatus'] = 'manual-required'
+            node['dataSource'] = f'需要人工介入 - API调用失败: {str(e)[:50]}'
+    
+    return updated_nodes
+
+async def optimize_distribution_nodes(nodes:List[Dict[str, Any]]):
+    """优化配送节点的参数
+    
+    Args:
+        nodes: 配送节点列表，每个节点包含:
+            - startPoint: 起始点
+            - endPoint: 终点
+            - productName: 产品名称
+            - weight: 重量(kg)
+            - transportMode: 运输方式
+            - distance: 距离(km)
+            - carbonFactor: 碳排放因子
+            - fuelType: 燃料类型
+            - uncertaintyScore: 不确定性评分(0-100)
+            - uncertaintyScoreUnit: 不确定性评分单位
+            - uncertaintyFactors: 不确定性因素列表
+    
+    Returns:
+        优化后的节点列表
+    """
+    logger.info("开始优化配送节点参数")
+    logger.info(f"需要优化的节点数量: {len(nodes)}")
+    
+    # 创建节点副本以避免修改原始数据
+    nodes_copy = copy.deepcopy(nodes)
+    
+    # 构建系统提示词
+    system_message = {
+        "role": "system",
+        "content": 
+        """
+        当前我们要计算碳足迹中的分销环节，需要根据现有的节点信息，计算出每个节点的碳排放量。你是一位专业碳足迹的物流和供应链优化专家。请根据以下原则优化运输参数：
+
+    
+        计算步骤
+        
+        1. 先计算运输距离(transportationDistance)(startPoint到endPoint的距离)
+        2. 确定运输方式(transportMode)
+        3. 确认单次运输可以承载的重量(weight)
+        3. 确定燃料类型(fuelType)
+        4. 确定燃料消耗量(fuelConsumption)
+        5. 查找燃料排放因子(carbonFactor)
+        6. 计算总D(carbonFootprint)
+        7. 不确定性评估(百分比), 如果你觉得这个碳因子高概率可用(通过iso报告标准检测), 不确定性请给10%以内, 如果觉得基本可用, 不确定性请给40%以内, 如果觉得这个碳因子不确定性很高, 请给40%以上
+
+        
+        你需要根据节点信息，计算出节点的总碳排放量(carbonFootprint)，并给出碳排放量计算公式, 最终把所有相关信息填回到json中, 并且将aiReasoning字段加到json中, 给简短的总结, 并且加上如果想要得到更精准的碳足迹, 需要优先填当前缺失的值, 切记透过起点终点把距离计算正确！
+        
+        计算过程中用到的东西都需要上去, 尤其是transportationDistance
+        
+        """
+        
+    }
+
+    import re
+    import json
+    nodes_text = json.dumps(nodes, ensure_ascii=False, indent=2)
+    
+    user_message = {"role": "user", "content": nodes_text}
+    
+    try:
+        # 调用AI服务
+        response = await call_ai_service_api(
+            messages=[system_message, user_message],
+            temperature=0,
+            max_tokens=4000
+        )
+        
+        # 从响应中获取AI的回复内容
+        if response and 'choices' in response and len(response['choices']) > 0:
+            content = response['choices'][0]['message']['content']
+            
+            # 尝试从回应中提取JSON部分
+            json_match = re.search(r'```json\s*([\s\S]*?)\s*```', content)
+            json_str = json_match.group(1) if json_match else content
+            
+            # 尝试解析JSON
+            try:
+                results = json.loads(json_str)
+                logger.info(f"成功解析DeepSeek API返回的JSON数据，包含{len(results)}个节点")
+                
+                # 更新节点数据
+                for result in results:
+                    # 查找对应节点
+                    node_id = result.get("id")
+                    node_index = next((idx for idx, node in enumerate(nodes_copy) 
+                                    if str(node.get('id')) == str(node_id)), None)
+                    
+                    if node_index is not None:
+                        # 更新节点数据
+                        nodes_copy[node_index].update({
+                            "transportMode": result.get("transportMode"),
+                            "distance": result.get("distance"),
+                            "carbonFactor": result.get("carbonFactor"),
+                            "fuelType": result.get("fuelType"),
+                            "startPoint": result.get("startPoint"),
+                            "endPoint": result.get("endPoint"),
+                            "vehicleType": result.get("vehicleType"),
+                            "fuelEfficiency": result.get("fuelEfficiency"),
+                            "refrigeration": result.get("refrigeration", False),
+                            "packagingMaterial": result.get("packagingMaterial"),
+                            "packagingWeight": result.get("packagingWeight"),
+                            "warehouseEnergy": result.get("warehouseEnergy"),
+                            "storageTime": result.get("storageTime"),
+                            "storageConditions": result.get("storageConditions"),
+                            "loadFactor": result.get("loadFactor"),
+                            "distributionNetwork": result.get("distributionNetwork"),
+                            "aiRecommendation": result.get("aiRecommendation"),
+                            "optimizationExplanation": result.get("optimizationExplanation"),
+                            "uncertaintyScore": result.get("uncertaintyScore"),
+                            "uncertaintyScoreUnit": result.get("uncertaintyScoreUnit"),
+                            "uncertaintyFactors": result.get("uncertaintyFactors", []),
+                            "recommendations": result.get("recommendations", []),
+                            "carbonFootprint": result.get("carbonFootprint", 0),
+                            "dataSource": result.get("dataSource", "AI优化"),
+                            "verificationStatus": result.get("verificationStatus", "未验证"),
+                            "completionStatus": result.get("completionStatus", "AI补充"),
+                            "applicableStandard": result.get("applicableStandard", "ISO 14040"),
+                            "calculationMethod": result.get("calculationMethod", "因子法"),
+                            "aiReasoning": result.get("aiReasoning", "未知")
+                        })
+                        logger.info(f"节点 {node_id} 参数已优化")
+                    else:
+                        logger.warning(f"未找到ID为 {node_id} 的节点")
+            except json.JSONDecodeError:
+                # 如果JSON解析失败，尝试从文本中提取关键信息
+                logger.warning("无法解析JSON响应，尝试从文本中提取信息")
+                for i, node in enumerate(nodes_copy):
+                    # 提取运输方式
+                    transport_mode_match = re.search(rf"节点 {i+1}.*?运输方式[：:]\s*([^\n]+)", content)
+                    if transport_mode_match:
+                        node["transportMode"] = transport_mode_match.group(1).strip()
+                    
+                    # 提取距离
+                    distance_match = re.search(rf"节点 {i+1}.*?距离[：:]\s*(\d+\.?\d*)", content)
+                    if distance_match:
+                        node["distance"] = float(distance_match.group(1))
+                    
+                    # 提取碳排放因子
+                    carbon_factor_match = re.search(rf"节点 {i+1}.*?碳排放因子[：:]\s*(\d+\.?\d*)", content)
+                    if carbon_factor_match:
+                        node["carbonFactor"] = float(carbon_factor_match.group(1))
+                    
+                    # 提取燃料类型
+                    fuel_type_match = re.search(rf"节点 {i+1}.*?燃料类型[：:]\s*([^\n]+)", content)
+                    if fuel_type_match:
+                        node["fuelType"] = fuel_type_match.group(1).strip()
+                    
+                    # 提取不确定性评分
+                    uncertainty_score_match = re.search(rf"节点 {i+1}.*?不确定性评分[：:]\s*(\d+)", content)
+                    if uncertainty_score_match:
+                        node["uncertaintyScore"] = int(uncertainty_score_match.group(1))
+                    
+                    # 提取不确定性评分单位
+                    uncertainty_unit_match = re.search(rf"节点 {i+1}.*?不确定性评分单位[：:]\s*([^\n]+)", content)
+                    if uncertainty_unit_match:
+                        node["uncertaintyScoreUnit"] = uncertainty_unit_match.group(1).strip()
+                    
+                    # 提取不确定性因素
+                    uncertainty_factors_match = re.search(rf"节点 {i+1}.*?不确定性因素[：:]\s*([^\n]+)", content)
+                    if uncertainty_factors_match:
+                        node["uncertaintyFactors"] = [factor.strip() for factor in uncertainty_factors_match.group(1).split("、")]
+                    
+                    logger.info(f"节点 {i} 参数已从文本中提取")
+        else:
+            logger.error(f"DeepSeek API返回的响应格式不正确: {response}")
+            # 标记所有节点需要人工介入
+            for node in nodes_copy:
+                node['completionStatus'] = 'manual-required'
+                node['dataSource'] = '需要人工介入 - API响应格式错误'
+        
+        logger.info("配送节点参数优化完成")
+        return nodes_copy
+        
+    except Exception as e:
+        logger.error(f"优化配送节点参数时发生错误: {str(e)}")
+        raise
+
+async def optimize_manufacturing_nodes(nodes: List[Dict[str, Any]]):
+    """优化制造节点的参数
+    
+    Args:
+        nodes: 制造节点列表，每个节点包含:
+            - productName: 产品名称
+            - energyType: 能源类型
+            - energyConsumption: 能源消耗(kWh)
+            - processEfficiency: 工艺效率(%)
+            - wasteRate: 废品率(%)
+            - carbonFactor: 碳排放因子
+            - uncertaintyScore: 不确定性评分(0-100)
+            - uncertaintyScoreUnit: 不确定性评分单位
+            - uncertaintyFactors: 不确定性因素列表
+    
+    Returns:
+        优化后的节点列表
+    """
+    logger.info("开始优化制造节点参数")
+    logger.info(f"需要优化的节点数量: {len(nodes)}")
+    
+    # 创建节点副本以避免修改原始数据
+    nodes_copy = copy.deepcopy(nodes)
+    
+    # 构建系统提示词
+    system_message = {
+        "role": "system",
+        "content": """你是一位专业的制造工艺优化专家。请根据以下原则优化制造参数：
+
+1. 能源使用：
+   - 选择最合适的能源类型
+   - 优化能源消耗
+   - 考虑能源效率和成本
+   - 优先使用清洁能源
+
+2. 工艺效率：
+   - 提高生产效率
+   - 减少资源浪费
+   - 优化工艺流程
+   - 考虑设备维护
+
+3. 废品管理：
+   - 降低废品率
+   - 优化废品处理
+   - 提高材料利用率
+   - 考虑循环利用
+
+4. 碳排放：
+   - 优化碳排放因子
+   - 减少温室气体排放
+   - 考虑碳足迹
+   - 采用低碳技术
+
+5. 不确定性评估：
+   - 评估工艺参数的稳定性
+   - 考虑设备运行状态
+   - 评估原材料质量波动
+   - 提供不确定性评分(0-100)和具体因素说明
+    
+注意:
+1. 确保输入输出都是相同的JSON格式的结果，不要添加其他解释, 请确保所有参数合理且符合实际情况
+2. 将aiReasoning字段加到json中, 给简短的总结, 并且加上如果想要得到更精准的碳足迹, 需要优先填当前缺失的值"""
+    }
+
+    import re
+    import json
+    nodes_text = json.dumps(nodes, ensure_ascii=False, indent=2)
+    user_message = {"role": "user", "content": nodes_text}
+    
+    try:
+        # 调用AI服务
+        response = await call_ai_service_api(
+            messages=[system_message, user_message],
+            temperature=0,
+            max_tokens=4000
+        )
+        
+        # 从响应中获取AI的回复内容
+        if response and 'choices' in response and len(response['choices']) > 0:
+            content = response['choices'][0]['message']['content']
+            
+            # 尝试从回应中提取JSON部分
+            json_match = re.search(r'```json\s*([\s\S]*?)\s*```', content)
+            json_str = json_match.group(1) if json_match else content
+            
+            # 尝试解析JSON
+            try:
+                results = json.loads(json_str)
+                logger.info(f"成功解析DeepSeek API返回的JSON数据，包含{len(results)}个节点")
+                
+                # 更新节点数据
+                for result in results:
+                    # 查找对应节点
+                    node_id = result.get("id")
+                    node_index = next((idx for idx, node in enumerate(nodes_copy) 
+                                    if str(node.get('id')) == str(node_id)), None)
+                    
+                    if node_index is not None:
+                        # 更新节点数据
+                        nodes_copy[node_index].update({
+                            "energyType": result.get("energyType"),
+                            "energyConsumption": result.get("energyConsumption"),
+                            "processEfficiency": result.get("processEfficiency"),
+                            "wasteRate": result.get("wasteRate"),
+                            "carbonFactor": result.get("carbonFactor"),
+                            "optimizationExplanation": result.get("optimizationExplanation"),
+                            "uncertaintyScore": result.get("uncertaintyScore"),
+                            "uncertaintyScoreUnit": result.get("uncertaintyScoreUnit"),
+                            "uncertaintyFactors": result.get("uncertaintyFactors", []),
+                            "aiReasoning": result.get("aiReasoning", "")
+                        })
+                        logger.info(f"节点 {node_id} 参数已优化")
+                    else:
+                        logger.warning(f"未找到ID为 {node_id} 的节点")
+            except json.JSONDecodeError:
+                # 如果JSON解析失败，尝试从文本中提取关键信息
+                logger.warning("无法解析JSON响应，尝试从文本中提取信息")
+                for i, node in enumerate(nodes_copy):
+                    # 提取能源类型
+                    energy_type_match = re.search(rf"节点 {i+1}.*?能源类型[：:]\s*([^\n]+)", content)
+                    if energy_type_match:
+                        node["energyType"] = energy_type_match.group(1).strip()
+                    
+                    # 提取能源消耗
+                    energy_consumption_match = re.search(rf"节点 {i+1}.*?能源消耗[：:]\s*(\d+\.?\d*)", content)
+                    if energy_consumption_match:
+                        node["energyConsumption"] = float(energy_consumption_match.group(1))
+                    
+                    # 提取工艺效率
+                    process_efficiency_match = re.search(rf"节点 {i+1}.*?工艺效率[：:]\s*(\d+\.?\d*)", content)
+                    if process_efficiency_match:
+                        node["processEfficiency"] = float(process_efficiency_match.group(1))
+                    
+                    # 提取废品率
+                    waste_rate_match = re.search(rf"节点 {i+1}.*?废品率[：:]\s*(\d+\.?\d*)", content)
+                    if waste_rate_match:
+                        node["wasteRate"] = float(waste_rate_match.group(1))
+                    
+                    # 提取碳排放因子
+                    carbon_factor_match = re.search(rf"节点 {i+1}.*?碳排放因子[：:]\s*(\d+\.?\d*)", content)
+                    if carbon_factor_match:
+                        node["carbonFactor"] = float(carbon_factor_match.group(1))
+                    
+                    # 提取不确定性评分
+                    uncertainty_score_match = re.search(rf"节点 {i+1}.*?不确定性评分[：:]\s*(\d+)", content)
+                    if uncertainty_score_match:
+                        node["uncertaintyScore"] = int(uncertainty_score_match.group(1))
+                    
+                    # 提取不确定性评分单位
+                    uncertainty_unit_match = re.search(rf"节点 {i+1}.*?不确定性评分单位[：:]\s*([^\n]+)", content)
+                    if uncertainty_unit_match:
+                        node["uncertaintyScoreUnit"] = uncertainty_unit_match.group(1).strip()
+                    
+                    # 提取不确定性因素
+                    uncertainty_factors_match = re.search(rf"节点 {i+1}.*?不确定性因素[：:]\s*([^\n]+)", content)
+                    if uncertainty_factors_match:
+                        node["uncertaintyFactors"] = [factor.strip() for factor in uncertainty_factors_match.group(1).split("、")]
+                    
+                    logger.info(f"节点 {i} 参数已从文本中提取")
+        else:
+            logger.error(f"DeepSeek API返回的响应格式不正确: {response}")
+            # 标记所有节点需要人工介入
+            for node in nodes_copy:
+                node['completionStatus'] = 'manual-required'
+                node['dataSource'] = '需要人工介入 - API响应格式错误'
+        
+        logger.info("制造节点参数优化完成")
+        return nodes_copy
+        
+    except Exception as e:
+        logger.error(f"优化制造节点参数时发生错误: {str(e)}")
+        raise
+
+async def optimize_usage_nodes(nodes: List[Dict[str, Any]]):
+    """优化使用节点的参数
+    
+    Args:
+        nodes: 使用节点列表，每个节点包含:
+            - productName: 产品名称
+            - usageFrequency: 使用频率(次/天)
+            - energyConsumption: 能源消耗(kWh)
+            - waterConsumption: 水资源消耗(m³)
+            - maintenanceFrequency: 维护频率(次/年)
+            - repairRate: 维修率(%)
+            - uncertaintyScore: 不确定性评分(0-100)
+            - uncertaintyScoreUnit: 不确定性评分单位
+            - uncertaintyFactors: 不确定性因素列表
+    
+    Returns:
+        优化后的节点列表
+    """
+    logger.info("开始优化使用节点参数")
+    logger.info(f"需要优化的节点数量: {len(nodes)}")
+    
+    # 创建节点副本以避免修改原始数据
+    nodes_copy = copy.deepcopy(nodes)
+    
+    # 构建系统提示词
+    system_message = {
+        "role": "system",
+        "content": """你是一位专业的碳足迹产品使用优化专家。请根据以下原则优化使用参数：
+
+    1. 使用效率：
+    - 优化使用频率
+    - 提高使用效率
+    - 减少资源浪费
+    - 考虑使用习惯
+
+    2. 能源消耗：
+    - 优化能源使用
+    - 提高能源效率
+    - 减少能源浪费
+    - 采用节能技术
+
+    3. 水资源消耗：
+    - 优化水资源使用
+    - 提高水资源效率
+    - 减少水资源浪费
+    - 采用节水技术
+
+    4. 维护管理：
+    - 优化维护频率
+    - 降低维修率
+    - 延长使用寿命
+    - 提高可靠性
+
+    5. 不确定性评估：
+    - 评估使用习惯的稳定性
+    - 考虑环境条件变化
+    - 评估维护质量波动
+    - 提供不确定性评分(0-100)和具体因素说明
+
+    注意:
+    1. 确保输入输出都是相同的JSON格式的结果，不要添加其他解释, 请确保所有参数合理且符合实际情况
+    2. 将aiReasoning字段加到json中, 给简短的总结, 并且加上如果想要得到更精准的碳足迹, 需要优先填当前缺失的值"""
+    }
+
+    import re
+    import json
+    nodes_text = json.dumps(nodes, ensure_ascii=False, indent=2)
+    user_message = {"role": "user", "content": nodes_text}
+    
+
+    try:
+        # 调用AI服务
+        response = await call_ai_service_api(
+            messages=[system_message, user_message],
+            temperature=0,
+            max_tokens=4000
+        )        
+        # 尝试解析JSON响应
+        try:
+            result = json.loads(response)
+            if "nodes" in result:
+                for node in result["nodes"]:
+                    node_index = node.get("nodeIndex")
+                    if node_index is not None and 0 <= node_index < len(nodes_copy):
+                        nodes_copy[node_index].update({
+                            "usageFrequency": node.get("usageFrequency"),
+                            "energyConsumption": node.get("energyConsumption"),
+                            "waterConsumption": node.get("waterConsumption"),
+                            "maintenanceFrequency": node.get("maintenanceFrequency"),
+                            "repairRate": node.get("repairRate"),
+                            "optimizationExplanation": node.get("optimizationExplanation"),
+                            "uncertaintyScore": node.get("uncertaintyScore"),
+                            "uncertaintyScoreUnit": node.get("uncertaintyScoreUnit"),
+                            "uncertaintyFactors": node.get("uncertaintyFactors", []),
+                            "aiReasoning": node.get("aiReasoning", "")
+                        })
+                        logger.info(f"节点 {node_index} 参数已优化")
+        except json.JSONDecodeError:
+            # 如果JSON解析失败，尝试从文本中提取关键信息
+            logger.warning("无法解析JSON响应，尝试从文本中提取信息")
+            for i, node in enumerate(nodes_copy):
+                # 提取使用频率
+                usage_frequency_match = re.search(rf"节点 {i+1}.*?使用频率[：:]\s*(\d+\.?\d*)", response)
+                if usage_frequency_match:
+                    node["usageFrequency"] = float(usage_frequency_match.group(1))
+                
+                # 提取能源消耗
+                energy_consumption_match = re.search(rf"节点 {i+1}.*?能源消耗[：:]\s*(\d+\.?\d*)", response)
+                if energy_consumption_match:
+                    node["energyConsumption"] = float(energy_consumption_match.group(1))
+                
+                # 提取水资源消耗
+                water_consumption_match = re.search(rf"节点 {i+1}.*?水资源消耗[：:]\s*(\d+\.?\d*)", response)
+                if water_consumption_match:
+                    node["waterConsumption"] = float(water_consumption_match.group(1))
+                
+                # 提取维护频率
+                maintenance_frequency_match = re.search(rf"节点 {i+1}.*?维护频率[：:]\s*(\d+)", response)
+                if maintenance_frequency_match:
+                    node["maintenanceFrequency"] = int(maintenance_frequency_match.group(1))
+                
+                # 提取维修率
+                repair_rate_match = re.search(rf"节点 {i+1}.*?维修率[：:]\s*(\d+\.?\d*)", response)
+                if repair_rate_match:
+                    node["repairRate"] = float(repair_rate_match.group(1))
+                
+                # 提取不确定性评分
+                uncertainty_score_match = re.search(rf"节点 {i+1}.*?不确定性评分[：:]\s*(\d+)", response)
+                if uncertainty_score_match:
+                    node["uncertaintyScore"] = int(uncertainty_score_match.group(1))
+                
+                # 提取不确定性评分单位
+                uncertainty_unit_match = re.search(rf"节点 {i+1}.*?不确定性评分单位[：:]\s*([^\n]+)", response)
+                if uncertainty_unit_match:
+                    node["uncertaintyScoreUnit"] = uncertainty_unit_match.group(1).strip()
+                
+                # 提取不确定性因素
+                uncertainty_factors_match = re.search(rf"节点 {i+1}.*?不确定性因素[：:]\s*([^\n]+)", response)
+                if uncertainty_factors_match:
+                    node["uncertaintyFactors"] = [factor.strip() for factor in uncertainty_factors_match.group(1).split("、")]
+                
+                logger.info(f"节点 {i} 参数已从文本中提取")
+        
+        logger.info("使用节点参数优化完成")
+        return nodes_copy
+        
+    except Exception as e:
+        logger.error(f"优化使用节点参数时发生错误: {str(e)}")
+        raise
+
+async def optimize_disposal_nodes(nodes: List[Dict[str, Any]]):
+    """优化处置节点的参数
+    
+    Args:
+        nodes: 处置节点列表，每个节点包含:
+            - productName: 产品名称
+            - recyclingRate: 回收率(%)
+            - landfillRate: 填埋率(%)
+            - incinerationRate: 焚烧率(%)
+            - hazardousWasteContent: 危险废物含量(%)
+            - biodegradability: 生物降解性(%)
+            - uncertaintyScore: 不确定性评分(0-100)
+            - uncertaintyScoreUnit: 不确定性评分单位
+            - uncertaintyFactors: 不确定性因素列表
+    
+    Returns:
+        优化后的节点列表
+    """
+    logger.info("开始优化处置节点参数")
+    logger.info(f"需要优化的节点数量: {len(nodes)}")
+    
+    # 创建节点副本以避免修改原始数据
+    nodes_copy = copy.deepcopy(nodes)
+    
+    # 构建系统提示词
+    system_message = {
+        "role": "system",
+        "content": """你是一位专业的碳足迹废弃物处置优化专家。请根据以下原则优化填补参数：
+
+    1. 回收利用：
+    - 提高回收率
+    - 优化回收流程
+    - 提高材料利用率
+    - 促进循环经济
+
+    2. 填埋处置：
+    - 降低填埋率
+    - 优化填埋工艺
+    - 减少环境影响
+    - 提高空间利用率
+
+    3. 焚烧处置：
+    - 优化焚烧率
+    - 提高能源回收
+    - 减少污染物排放
+    - 提高处理效率
+
+    4. 危险废物：
+    - 降低危险废物含量
+    - 优化处理工艺
+    - 提高安全性
+    - 减少环境风险
+
+    5. 生物降解：
+    - 提高生物降解性
+    - 优化降解条件
+    - 减少环境影响
+    - 促进自然循环
+
+    6. 不确定性评估：
+    - 评估处置工艺的稳定性
+    - 考虑废物成分变化
+    - 评估环境条件影响
+    - 提供不确定性评分(0-100)和具体因素说明
+
+    注意:
+    1. 确保输入输出都是相同的JSON格式的结果，不要添加其他解释, 请确保所有参数合理且符合实际情况
+    2. 将aiReasoning字段加到json中, 给简短的总结, 并且加上如果想要得到更精准的碳足迹, 需要优先填当前缺失的值, 并且加上如果想要得到更精准的碳足迹, 需要优先填当前缺失的值"""
+    }
+
+    import re
+    import json
+    nodes_text = json.dumps(nodes, ensure_ascii=False, indent=2)
+    user_message = {"role": "user", "content": nodes_text}
+    
+    try:
+        # 调用AI服务
+        response = await call_ai_service_api(
+            messages=[system_message, user_message],
+            temperature=0,
+            max_tokens=4000
+        )
+        
+        # 从响应中获取AI的回复内容
+        if response and 'choices' in response and len(response['choices']) > 0:
+            content = response['choices'][0]['message']['content']
+            
+            # 尝试从回应中提取JSON部分
+            json_match = re.search(r'```json\s*([\s\S]*?)\s*```', content)
+            json_str = json_match.group(1) if json_match else content
+            
+            # 尝试解析JSON
+            try:
+                results = json.loads(json_str)
+                logger.info(f"成功解析DeepSeek API返回的JSON数据，包含{len(results)}个节点")
+                
+                # 更新节点数据
+                for result in results:
+                    # 查找对应节点
+                    node_id = result.get("id")
+                    node_index = next((idx for idx, node in enumerate(nodes_copy) 
+                                    if str(node.get('id')) == str(node_id)), None)
+                    
+                    if node_index is not None:
+                        # 更新节点数据
+                        nodes_copy[node_index].update({
+                            "recyclingRate": result.get("recyclingRate"),
+                            "landfillRate": result.get("landfillRate"),
+                            "incinerationRate": result.get("incinerationRate"),
+                            "hazardousWasteContent": result.get("hazardousWasteContent"),
+                            "biodegradability": result.get("biodegradability"),
+                            "optimizationExplanation": result.get("optimizationExplanation"),
+                            "uncertaintyScore": result.get("uncertaintyScore"),
+                            "uncertaintyScoreUnit": result.get("uncertaintyScoreUnit"),
+                            "uncertaintyFactors": result.get("uncertaintyFactors", []),
+                            "aiReasoning": result.get("aiReasoning", "")
+                        })
+                        logger.info(f"节点 {node_id} 参数已优化")
+                    else:
+                        logger.warning(f"未找到ID为 {node_id} 的节点")
+            except json.JSONDecodeError:
+                # 如果JSON解析失败，尝试从文本中提取关键信息
+                logger.warning("无法解析JSON响应，尝试从文本中提取信息")
+                for i, node in enumerate(nodes_copy):
+                    # 提取回收率
+                    recycling_rate_match = re.search(rf"节点 {i+1}.*?回收率[：:]\s*(\d+\.?\d*)", content)
+                    if recycling_rate_match:
+                        node["recyclingRate"] = float(recycling_rate_match.group(1))
+                    
+                    # 提取填埋率
+                    landfill_rate_match = re.search(rf"节点 {i+1}.*?填埋率[：:]\s*(\d+\.?\d*)", content)
+                    if landfill_rate_match:
+                        node["landfillRate"] = float(landfill_rate_match.group(1))
+                    
+                    # 提取焚烧率
+                    incineration_rate_match = re.search(rf"节点 {i+1}.*?焚烧率[：:]\s*(\d+\.?\d*)", content)
+                    if incineration_rate_match:
+                        node["incinerationRate"] = float(incineration_rate_match.group(1))
+                    
+                    # 提取危险废物含量
+                    hazardous_waste_match = re.search(rf"节点 {i+1}.*?危险废物含量[：:]\s*(\d+\.?\d*)", content)
+                    if hazardous_waste_match:
+                        node["hazardousWasteContent"] = float(hazardous_waste_match.group(1))
+                    
+                    # 提取生物降解性
+                    biodegradability_match = re.search(rf"节点 {i+1}.*?生物降解性[：:]\s*(\d+\.?\d*)", content)
+                    if biodegradability_match:
+                        node["biodegradability"] = float(biodegradability_match.group(1))
+                    
+                    # 提取不确定性评分
+                    uncertainty_score_match = re.search(rf"节点 {i+1}.*?不确定性评分[：:]\s*(\d+)", content)
+                    if uncertainty_score_match:
+                        node["uncertaintyScore"] = int(uncertainty_score_match.group(1))
+                    
+                    # 提取不确定性评分单位
+                    uncertainty_unit_match = re.search(rf"节点 {i+1}.*?不确定性评分单位[：:]\s*([^\n]+)", content)
+                    if uncertainty_unit_match:
+                        node["uncertaintyScoreUnit"] = uncertainty_unit_match.group(1).strip()
+                    
+                    # 提取不确定性因素
+                    uncertainty_factors_match = re.search(rf"节点 {i+1}.*?不确定性因素[：:]\s*([^\n]+)", content)
+                    if uncertainty_factors_match:
+                        node["uncertaintyFactors"] = [factor.strip() for factor in uncertainty_factors_match.group(1).split("、")]
+                    
+                    logger.info(f"节点 {i} 参数已从文本中提取")
+        else:
+            logger.error(f"DeepSeek API返回的响应格式不正确: {response}")
+            # 标记所有节点需要人工介入
+            for node in nodes_copy:
+                node['completionStatus'] = 'manual-required'
+                node['dataSource'] = '需要人工介入 - API响应格式错误'
+        
+        logger.info("处置节点参数优化完成")
+        return nodes_copy
+        
+    except Exception as e:
+        logger.error(f"优化处置节点参数时发生错误: {str(e)}")
+        raise
+

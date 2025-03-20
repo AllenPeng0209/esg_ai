@@ -320,7 +320,114 @@ export const aiApi = {
     });
     
     return longTimeoutApi.post('/ai/match-carbon-factors', nodes);
-  }
-};
+  },
+
+  
+  // 优化原材料节点
+  optimizeRawMaterialNode: (node: any) => {
+    const longTimeoutApi = axios.create({
+      baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1',
+      timeout: 180000, // 3分钟超时
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    longTimeoutApi.interceptors.request.use(function (config) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
+    
+    return longTimeoutApi.post('/ai/optimize/raw_material', node);
+  },
+
+  // 优化分销和储存节点
+  optimizeDistributionNode: (node: any) => {
+    const longTimeoutApi = axios.create({
+      baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1',
+      timeout: 180000, // 3分钟超时
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    longTimeoutApi.interceptors.request.use(function (config) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
+    
+    return longTimeoutApi.post('/ai/optimize/distribution', node);
+  },
+
+  // 优化生产制造节点
+  optimizeManufacturingNode: (node: any) => {
+    const longTimeoutApi = axios.create({
+      baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1',
+      timeout: 180000, // 3分钟超时
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    longTimeoutApi.interceptors.request.use(function (config) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
+    
+    return longTimeoutApi.post('/ai/optimize/manufacturing', node);
+  },
+
+  // 优化产品使用节点
+  optimizeUsageNode: (node: any) => {
+    const longTimeoutApi = axios.create({
+      baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1',
+      timeout: 180000, // 3分钟超时
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });     
+    
+    longTimeoutApi.interceptors.request.use(function (config) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      } 
+      return config;    
+    });
+    
+    return longTimeoutApi.post('/ai/optimize/usage', node);
+  },
+
+  // 优化废弃处置节点
+  optimizeDisposalNode: (node: any) => {
+    const longTimeoutApi = axios.create({
+      baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1',
+      timeout: 180000, // 3分钟超时
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    longTimeoutApi.interceptors.request.use(function (config) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
+
+    return longTimeoutApi.post('/ai/optimize/disposal', node);
+  },
+
+};  
 
 export default api; 

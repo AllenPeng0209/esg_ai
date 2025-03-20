@@ -1,11 +1,23 @@
 from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form
 from sqlalchemy.orm import Session
 from typing import Dict, Any, List, Optional
-
+import copy
 from app.database import get_db
 from app.schemas.user import User
 from app.api import deps
-from app.services.ai_service import call_openai_api, standardize_bom, calculate_product_carbon_footprint, match_carbon_factors, standardize_lifecycle_document, decompose_product_materials
+from app.services.ai_service import (
+    call_ai_service_api, 
+    standardize_bom, 
+    calculate_product_carbon_footprint, 
+    match_carbon_factors, 
+    standardize_lifecycle_document, 
+    decompose_product_materials,
+    optimize_distribution_nodes,
+    optimize_manufacturing_nodes,
+    optimize_usage_nodes,
+    optimize_disposal_nodes,
+    optimize_raw_material_nodes
+)
 
 router = APIRouter()
 
@@ -19,7 +31,7 @@ async def openai_proxy(
     OpenAI API代理
     """
     try:
-        response = await call_openai_api(
+        response = await call_ai_service_api(
             messages=request.get("messages", []),
             model=request.get("model", "gpt-3.5-turbo"),
             temperature=request.get("temperature", 0.7),
@@ -146,7 +158,7 @@ async def test_openai_proxy(request: Dict[str, Any]):
     测试OpenAI API代理接口，无需认证
     """
     try:
-        response = await call_openai_api(
+        response = await call_ai_service_api(
             messages=request.get("messages", [{"role": "user", "content": "测试消息"}]),
             model=request.get("model", "gpt-3.5-turbo"),
             temperature=request.get("temperature", 0.7),
@@ -243,4 +255,270 @@ async def decompose_product(
     except Exception as e:
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"產品分解失敗: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"產品分解失敗: {str(e)}")
+
+@router.post("/optimize/raw_material")
+async def optimize_raw_material(
+    node: Dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    优化原材料阶段的节点参数
+    
+    参数:
+    - node: 原材料节点，包含所有传入的字段
+    
+    返回:
+    - 优化后的节点，保留所有原始字段并添加优化结果
+    """
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"接收到原材料节点优化请求")
+        logger.info(f"原始节点数据: {node}")
+        
+        # 创建节点的深拷贝，保留所有原始数据
+
+        processed_node = copy.deepcopy(node)
+        
+        # 只为必要字段添加默认值，不修改或删除任何现有字段
+        if 'productName' not in processed_node:
+            processed_node['productName'] = 'Unknown Product'
+            
+        if 'material' not in processed_node:
+            processed_node['material'] = 'Unknown Material'
+            
+        if 'weight' not in processed_node:
+            processed_node['weight'] = 0
+            
+        if 'lifecycleStage' not in processed_node:
+            processed_node['lifecycleStage'] = '原材料'
+            
+        # 调用优化函数，传入完整的节点数据
+        optimized_nodes = await optimize_raw_material_nodes([processed_node])
+        
+        if not optimized_nodes or len(optimized_nodes) == 0:
+            raise ValueError("优化结果为空")
+            
+        # 确保优化结果保留原始节点的所有字段
+        optimized_node = optimized_nodes[0]
+        
+
+        logger.info(f"原材料节点优化完成")
+        logger.info(f"优化后的节点（包含所有原始字段）: {optimized_node}")
+        
+        return {
+            "status": "success", 
+            "data": optimized_node,  # 返回包含所有字段的优化结果
+        }
+    except Exception as e:
+        import traceback
+        logger.error(f"原材料节点优化失败: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"原材料节点优化失败: {str(e)}")
+
+@router.post("/optimize/distribution")
+async def optimize_distribution(
+    node: Dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    优化配送阶段的节点参数
+    
+    参数:
+    - node: 配送节点，包含:
+        - startPoint: 起始点
+        - endPoint: 终点
+        - productName: 产品名称
+        - weight: 重量(kg)
+        - transportMode: 运输方式
+        - distance: 距离(km)
+        - carbonFactor: 碳排放因子
+        - fuelType: 燃料类型
+    
+    返回:
+    - 优化后的节点，包含:
+        - 优化后的参数
+        - 优化说明
+        - 不确定性评分
+        - 不确定性因素
+    """
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"接收到分销节点优化请求")
+        logger.info(f"节点数据: {node}")
+        
+       
+            
+        # 调用优化函数
+        optimized_node = await optimize_distribution_nodes([node])
+        
+        if not optimized_node or len(optimized_node) == 0:
+            raise ValueError("优化结果为空")
+            
+
+        
+        logger.info(f"分销节点优化完成")
+        logger.info(f"优化后的节点: {optimized_node[0]}")
+        
+        return {"status": "success", "data": optimized_node[0]}
+    except Exception as e:
+        import traceback
+        logger.error(f"分销节点优化失败: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"分销节点优化失败: {str(e)}")
+
+@router.post("/optimize/manufacturing")
+async def optimize_manufacturing(
+    node: Dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    优化制造阶段的节点参数
+    
+    参数:
+    - node: 制造节点，包含:
+        - productName: 产品名称
+        - energyType: 能源类型
+        - energyConsumption: 能源消耗(kWh)
+        - processEfficiency: 工艺效率(%)
+        - wasteRate: 废品率(%)
+        - carbonFactor: 碳排放因子
+    
+    返回:
+    - 优化后的节点，包含:
+        - 优化后的参数
+        - 优化说明
+        - 不确定性评分
+        - 不确定性因素
+    """
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"接收到生产制造节点优化请求")
+        logger.info(f"节点数据: {node}")
+      
+            
+        # 调用优化函数
+        optimized_node = await optimize_manufacturing_nodes([node])
+        
+        if not optimized_node or len(optimized_node) == 0:
+            raise ValueError("优化结果为空")
+            
+        
+        
+        logger.info(f"生产制造节点优化完成")
+        logger.info(f"优化后的节点: {optimized_node[0]}")
+        
+        return {"status": "success", "data": optimized_node[0]}
+    except Exception as e:
+        import traceback
+        logger.error(f"生产制造节点优化失败: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"制造节点优化失败: {str(e)}")
+
+@router.post("/optimize/usage")
+async def optimize_usage(
+    node: Dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    优化使用阶段的节点参数
+    
+    参数:
+    - node: 使用节点，包含:
+        - productName: 产品名称
+        - usageFrequency: 使用频率(次/天)
+        - energyConsumption: 能源消耗(kWh)
+        - waterConsumption: 水资源消耗(m³)
+        - maintenanceFrequency: 维护频率(次/年)
+        - repairRate: 维修率(%)
+    
+    返回:
+    - 优化后的节点，包含:
+        - 优化后的参数
+        - 优化说明
+        - 不确定性评分
+        - 不确定性因素
+    """
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"接收到产品使用节点优化请求")
+        logger.info(f"节点数据: {node}")
+        
+   
+            
+        # 调用优化函数
+        optimized_node = await optimize_usage_nodes([node])
+        
+        if not optimized_node or len(optimized_node) == 0:
+            raise ValueError("优化结果为空")
+            
+     
+        
+        logger.info(f"产品使用节点优化完成")
+        logger.info(f"优化后的节点: {optimized_node[0]}")
+        
+        return {"status": "success", "data": optimized_node[0]}
+    except Exception as e:
+        import traceback
+        logger.error(f"产品使用节点优化失败: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"使用节点优化失败: {str(e)}")
+
+@router.post("/optimize/disposal")
+async def optimize_disposal(
+    node: Dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    优化处置阶段的节点参数
+    
+    参数:
+    - node: 处置节点，包含:
+        - productName: 产品名称
+        - recyclingRate: 回收率(%)
+        - landfillRate: 填埋率(%)
+        - incinerationRate: 焚烧率(%)
+        - hazardousWasteContent: 危险废物含量(%)
+        - biodegradability: 生物降解性(%)
+    
+    返回:
+    - 优化后的节点，包含:
+        - 优化后的参数
+        - 优化说明
+        - 不确定性评分
+        - 不确定性因素
+    """
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"接收到废弃处置节点优化请求")
+        logger.info(f"节点数据: {node}")
+        
+     
+            
+        # 调用优化函数
+        optimized_node = await optimize_disposal_nodes([node])
+        
+        if not optimized_node or len(optimized_node) == 0:
+            raise ValueError("优化结果为空")
+            
+
+        
+        logger.info(f"废弃处置节点优化完成")
+        logger.info(f"优化后的节点: {optimized_node[0]}")
+        
+        return {"status": "success", "data": optimized_node[0]}
+    except Exception as e:
+        import traceback
+        logger.error(f"废弃处置节点优化失败: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"处置节点优化失败: {str(e)}") 

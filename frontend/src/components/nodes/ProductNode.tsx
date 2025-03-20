@@ -21,6 +21,7 @@ interface ProductData {
   completionStatus?: 'completed' | 'ai-supplemented' | 'manual-required'; // 完成状态
   uncertaintyPercentage?: number; // 新增：不确定性百分比
   carbonFactor?: number; // 新增：碳排放因子 (kgCO2e/kg)
+  aiReasoning?: string; // 添加 AI 推理过程字段
   
   // 生产制造阶段特定字段
   energyConsumption?: number; // 能源消耗 (kWh)
@@ -64,9 +65,9 @@ const statusToClass: Record<string, string> = {
 
 // 完成状态映射到中文
 const statusToText: Record<string, string> = {
-  'completed': '完成',
+  'completed': '已完成',
   'ai-supplemented': 'AI補充',
-  'manual-required': '需人工補充',
+  'manual-required': '需人工介入',
 };
 
 // 使用ReactFlow的NodeProps类型，并指定我们的ProductData类型
@@ -213,70 +214,75 @@ const ProductNode: React.FC<NodeProps<ProductData>> = ({ data }) => {
           {data.lifecycleStage}
         </div>
       )}
-      <Card 
-        title={data.productName || '產品'}
-        className={`product-card ${statusClass}`}
-        size="small"
+      <Tooltip 
+        title={data.aiReasoning ? `AI推理过程：${data.aiReasoning}` : undefined}
+        placement="top"
       >
-        <div className="product-info-grid">
-          <Tooltip title="产品碳足迹">
-            <div className="product-info-item">
-              <Text type="secondary">碳足迹:</Text>
-              <Text strong>{data.carbonFootprint} kgCO₂e</Text>
-            </div>
-          </Tooltip>
-          
-          <Tooltip title="产品重量">
-            <div className="product-info-item">
-              <Text type="secondary">重量:</Text>
-              <Text>{data.weight} kg</Text>
-            </div>
-          </Tooltip>
-          
-          {/* 添加碳排放因子显示 */}
-          {data.carbonFactor !== undefined && (
-            <Tooltip title="碳排放因子">
+        <Card 
+          title={data.productName || '產品'}
+          className={`product-card ${statusClass}`}
+          size="small"
+        >
+          <div className="product-info-grid">
+            <Tooltip title="产品碳足迹">
               <div className="product-info-item">
-                <Text type="secondary">碳因子:</Text>
-                <Text>{data.carbonFactor} kgCO₂e/kg</Text>
+                <Text type="secondary">碳足迹:</Text>
+                <Text strong>{data.carbonFootprint} kgCO₂e</Text>
               </div>
             </Tooltip>
-          )}
-          
-          {/* 渲染阶段特定信息 */}
-          {renderLifecycleSpecificInfo()}
-          
-          <Tooltip title="数据来源">
-            <div className="product-info-item">
-              <Text type="secondary">数据源:</Text>
-              <Text>{data.dataSource}</Text>
-            </div>
-          </Tooltip>
-          
-          {/* 完成状态指示器 */}
-          <Tooltip title="完成状态">
-            <div className="product-info-item">
-              <Text type="secondary">狀態:</Text>
-              <div className="status">
-                <div className={`status-indicator ${statusText}`}></div>
-                <Text>{statusText}</Text>
-              </div>
-            </div>
-          </Tooltip>
-          
-          {/* 添加不确定性百分比显示 */}
-          {data.uncertaintyPercentage !== undefined && (
-            <Tooltip title="AI生成数据的不确定性">
-              <div className="product-info-item uncertainty">
-                <Text type="secondary">不确定性:</Text>
-                <Text type={data.uncertaintyPercentage > 50 ? "danger" : data.uncertaintyPercentage > 25 ? "warning" : "success"}>
-                  {data.uncertaintyPercentage}%
-                </Text>
+            
+            <Tooltip title="产品重量">
+              <div className="product-info-item">
+                <Text type="secondary">重量:</Text>
+                <Text>{data.weight} kg</Text>
               </div>
             </Tooltip>
-          )}
-        </div>
-      </Card>
+            
+            {/* 添加碳排放因子显示 */}
+            {data.carbonFactor !== undefined && (
+              <Tooltip title="碳排放因子">
+                <div className="product-info-item">
+                  <Text type="secondary">碳因子:</Text>
+                  <Text>{data.carbonFactor} kgCO₂e/kg</Text>
+                </div>
+              </Tooltip>
+            )}
+            
+            {/* 渲染阶段特定信息 */}
+            {renderLifecycleSpecificInfo()}
+            
+            <Tooltip title="数据来源">
+              <div className="product-info-item">
+                <Text type="secondary">数据源:</Text>
+                <Text>{data.dataSource}</Text>
+              </div>
+            </Tooltip>
+            
+            {/* 完成状态指示器 */}
+            <Tooltip title="完成状态">
+              <div className="product-info-item">
+                <Text type="secondary">狀態:</Text>
+                <div className="status">
+                  <div className={`status-indicator ${statusText}`}></div>
+                  <Text>{statusText}</Text>
+                </div>
+              </div>
+            </Tooltip>
+            
+            {/* 添加不确定性百分比显示 */}
+            {data.uncertaintyPercentage !== undefined && (
+              <Tooltip title="AI生成数据的不确定性">
+                <div className="product-info-item uncertainty">
+                  <Text type="secondary">不确定性:</Text>
+                  <Text type={data.uncertaintyPercentage > 50 ? "danger" : data.uncertaintyPercentage > 25 ? "warning" : "success"}>
+                    {data.uncertaintyPercentage}%
+                  </Text>
+                </div>
+              </Tooltip>
+            )}
+          </div>
+        </Card>
+      </Tooltip>
       <Handle type="source" position={Position.Bottom} />
     </div>
   );
