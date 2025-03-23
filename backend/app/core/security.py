@@ -1,64 +1,60 @@
 from typing import Optional
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
-from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.database import get_db
-from app.models.user import User
-from app.services.user_service import get_user_by_email
+from app.core.config import settings
+from app.core.supabase import get_supabase_client
+from app.schemas.user import UserResponse
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
-
-def get_current_user(
-    db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
-) -> User:
+async def get_current_user(
+    token: str = Depends(oauth2_scheme)
+) -> UserResponse:
     """
-    从JWT令牌获取当前用户
+    Get current user from JWT token using Supabase
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="无效的身份凭证",
+        detail="Invalid credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
-        email: str = payload.get("sub")
-        if email is None:
+        # Verify JWT with Supabase
+        supabase = get_supabase_client()
+        user_response = supabase.auth.get_user(token)
+        user = user_response.user
+        
+        if not user:
             raise credentials_exception
-    except JWTError:
+            
+        # Get user from our users table
+        response = supabase.table('users').select('*').eq('id', user.id).single().execute()
+        if not response.data:
+            raise credentials_exception
+            
+        return UserResponse(**response.data)
+        
+    except Exception as e:
         raise credentials_exception
 
-    user = get_user_by_email(db, email)
-    if user is None:
-        raise credentials_exception
-
-    return user
-
-
-def get_current_active_user(
-    current_user: User = Depends(get_current_user),
-) -> User:
+async def get_current_active_user(
+    current_user: UserResponse = Depends(get_current_user),
+) -> UserResponse:
     """
-    验证用户是否处于活动状态
+    Verify user is active
     """
     if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="账户未激活")
+        raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
-
-def get_current_active_superuser(
-    current_user: User = Depends(get_current_active_user),
-) -> User:
+async def get_current_active_superuser(
+    current_user: UserResponse = Depends(get_current_active_user),
+) -> UserResponse:
     """
-    验证用户是否是超级管理员
+    Verify user is superuser
     """
     if not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="权限不足")
+        raise HTTPException(status_code=403, detail="Not enough privileges")
     return current_user

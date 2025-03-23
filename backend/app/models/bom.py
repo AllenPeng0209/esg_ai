@@ -1,22 +1,19 @@
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 
-from app.database import Base
+from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
-class BOMFile(Base):
+class BOMFile(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "bom_files"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    title = Column(String)
-    file_path = Column(String)
-    content = Column(Text)
-    standardized_content = Column(Text, nullable=True)
-    file_type = Column(String)  # CSV, Excel
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    title = Column(String, nullable=False)
+    file_path = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    standardized_content = Column(Text)
+    file_type = Column(String, nullable=False)  # CSV, Excel
 
-    # 关联关系
+    # Relationships
     user = relationship("User", back_populates="bom_files")

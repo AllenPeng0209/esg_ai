@@ -1,7 +1,8 @@
 from passlib.context import CryptContext
 from sqlalchemy import create_engine, text
 
-from app.config import settings
+from app.core.supabase import get_supabase_client
+from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

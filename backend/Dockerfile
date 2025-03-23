@@ -2,17 +2,17 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# 复制依赖文件
+# Copy requirements first for better caching
 COPY requirements.txt .
 
-# 安装依赖
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制应用代码
+# Copy application code
 COPY . .
 
-# 暴露端口
+# Expose port
 EXPOSE 8000
 
-# 等待数据库并运行应用
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Run migrations and start the application
+CMD ["sh", "-c", "alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]

@@ -1,91 +1,97 @@
-from typing import List
+from typing import List, Optional
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.security import get_current_active_user
-from app.database import get_db
-from app.models.user import User
-from app.schemas.product import Product as ProductSchema
-from app.schemas.product import ProductCreate, ProductUpdate
-from app.services.product_service import (
-    create_product,
-    delete_product,
-    get_product_by_id,
-    get_user_products,
-    update_product,
-)
+from app.api import deps
+from app.core.supabase import get_supabase_client
+from app.schemas.user import UserResponse
+from app.schemas.product import Product, ProductCreate, ProductUpdate
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[ProductSchema])
-async def read_products(
+@router.get("/", response_model=List[Product])
+def get_products(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: UserResponse = Depends(deps.get_current_user),
 ):
-    """
-    获取当前用户的所有产品
-    """
-    products = get_user_products(db, current_user.id, skip, limit)
-    return products
+    """Get all products"""
+    supabase = get_supabase_client()
+    response = supabase.table('products').select('*').range(skip, skip + limit).execute()
+    return response.data
 
 
-@router.get("/{product_id}", response_model=ProductSchema)
-async def read_product(
-    product_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+@router.get("/{product_id}", response_model=Product)
+def get_product(
+    product_id: UUID,
+    current_user: UserResponse = Depends(deps.get_current_user),
 ):
-    """
-    获取指定产品
-    """
-    product = get_product_by_id(db, product_id, current_user.id)
-    if not product:
-        raise HTTPException(status_code=404, detail="产品未找到")
-    return product
+    """Get specific product"""
+    supabase = get_supabase_client()
+    response = supabase.table('products').select('*').eq('id', str(product_id)).single().execute()
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return response.data
 
 
-@router.post("/", response_model=ProductSchema)
-async def create_product_endpoint(
+@router.post("/", response_model=Product, status_code=status.HTTP_201_CREATED)
+def create_product(
     product: ProductCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: UserResponse = Depends(deps.get_current_user),
 ):
-    """
-    创建新产品
-    """
-    return create_product(db, product, current_user.id)
+    """Create new product"""
+    supabase = get_supabase_client()
+    
+    # Add user_id to product data
+    product_data = product.dict()
+    product_data['user_id'] = str(current_user.id)
+    
+    response = supabase.table('products').insert(product_data).execute()
+    return response.data[0]
 
 
-@router.put("/{product_id}", response_model=ProductSchema)
-async def update_product_endpoint(
-    product_id: int,
-    product_data: ProductUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+@router.put("/{product_id}", response_model=Product)
+def update_product(
+    product_id: UUID,
+    product_update: ProductUpdate,
+    current_user: UserResponse = Depends(deps.get_current_user),
 ):
-    """
-    更新产品
-    """
-    product = update_product(db, product_id, product_data, current_user.id)
-    if not product:
-        raise HTTPException(status_code=404, detail="产品未找到")
-    return product
+    """Update product"""
+    supabase = get_supabase_client()
+    
+    # Get product
+    product = supabase.table('products').select('*').eq('id', str(product_id)).single().execute()
+    if not product.data:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # Check if user has permission to update product
+    if product.data['user_id'] != str(current_user.id):
+        raise HTTPException(status_code=403, detail="You don't have permission to update this product")
+
+    # Update product
+    update_data = product_update.dict(exclude_unset=True)
+    response = supabase.table('products').update(update_data).eq('id', str(product_id)).execute()
+    return response.data[0]
 
 
-@router.delete("/{product_id}")
-async def delete_product_endpoint(
-    product_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_product(
+    product_id: UUID,
+    current_user: UserResponse = Depends(deps.get_current_user),
 ):
-    """
-    删除产品
-    """
-    result = delete_product(db, product_id, current_user.id)
-    if not result:
-        raise HTTPException(status_code=404, detail="产品未找到")
-    return {"message": "产品已删除"}
+    """Delete product"""
+    supabase = get_supabase_client()
+    
+    # Get product
+    product = supabase.table('products').select('*').eq('id', str(product_id)).single().execute()
+    if not product.data:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # Check if user has permission to delete product
+    if product.data['user_id'] != str(current_user.id):
+        raise HTTPException(status_code=403, detail="You don't have permission to delete this product")
+
+    supabase.table('products').delete().eq('id', str(product_id)).execute()
+    return None

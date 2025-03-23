@@ -1,13 +1,11 @@
 from typing import List
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.core.security import get_current_active_user
-from app.database import get_db
-from app.models.user import User
-from app.schemas.workflow import Workflow as WorkflowSchema
-from app.schemas.workflow import WorkflowCreate, WorkflowUpdate
+from app.api.deps import get_current_user
+from app.schemas.user import UserResponse
+from app.schemas.workflow import Workflow, WorkflowCreate, WorkflowUpdate
 from app.services.workflow_service import (
     calculate_carbon_footprint,
     create_workflow,
@@ -19,94 +17,111 @@ from app.services.workflow_service import (
 
 router = APIRouter()
 
-
-@router.get("/", response_model=List[WorkflowSchema])
+@router.get("/", response_model=List[Workflow])
 async def read_workflows(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-):
+    current_user: UserResponse = Depends(get_current_user),
+) -> List[dict]:
     """
-    获取当前用户的所有工作流
+    Get all workflows for current user
     """
-    workflows = get_user_workflows(db, current_user.id, skip, limit)
+    workflows = get_user_workflows(current_user.id, skip, limit)
+    # Ensure each workflow has the required fields with proper types
+    for workflow in workflows:
+        workflow['id'] = str(workflow['id']) if workflow.get('id') else None
+        workflow['user_id'] = str(workflow['user_id']) if workflow.get('user_id') else None
+        workflow['data'] = workflow.get('data', {})
+        workflow['nodes'] = workflow.get('nodes', [])
+        workflow['edges'] = workflow.get('edges', [])
     return workflows
 
-
-@router.get("/{workflow_id}", response_model=WorkflowSchema)
+@router.get("/{workflow_id}", response_model=Workflow)
 async def read_workflow(
-    workflow_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-):
+    workflow_id: UUID,
+    current_user: UserResponse = Depends(get_current_user),
+) -> dict:
     """
-    获取指定工作流
+    Get specific workflow
     """
-    workflow = get_workflow_by_id(db, workflow_id, current_user.id)
+    workflow = get_workflow_by_id(workflow_id, current_user.id)
     if not workflow:
-        raise HTTPException(status_code=404, detail="工作流未找到")
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    
+    # Ensure the workflow has the required fields with proper types
+    workflow['id'] = str(workflow['id']) if workflow.get('id') else None
+    workflow['user_id'] = str(workflow['user_id']) if workflow.get('user_id') else None
+    workflow['data'] = workflow.get('data', {})
+    workflow['nodes'] = workflow.get('nodes', [])
+    workflow['edges'] = workflow.get('edges', [])
+    
     return workflow
 
-
-@router.post("/", response_model=WorkflowSchema)
+@router.post("/", response_model=Workflow, status_code=status.HTTP_201_CREATED)
 async def create_workflow_endpoint(
     workflow: WorkflowCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-):
+    current_user: UserResponse = Depends(get_current_user),
+) -> dict:
     """
-    创建新工作流
+    Create new workflow
     """
-    return create_workflow(db, workflow, current_user.id)
+    result = create_workflow(workflow, current_user.id)
+    # Ensure the result has the required fields with proper types
+    result['id'] = str(result['id']) if result.get('id') else None
+    result['user_id'] = str(result['user_id']) if result.get('user_id') else None
+    result['data'] = result.get('data', {})
+    result['nodes'] = result.get('nodes', [])
+    result['edges'] = result.get('edges', [])
+    return result
 
-
-@router.put("/{workflow_id}", response_model=WorkflowSchema)
+@router.put("/{workflow_id}", response_model=Workflow)
 async def update_workflow_endpoint(
-    workflow_id: int,
+    workflow_id: UUID,
     workflow_data: WorkflowUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-):
+    current_user: UserResponse = Depends(get_current_user),
+) -> dict:
     """
-    更新工作流
+    Update workflow
     """
-    workflow = update_workflow(db, workflow_id, workflow_data, current_user.id)
+    workflow = update_workflow(workflow_id, workflow_data, current_user.id)
     if not workflow:
-        raise HTTPException(status_code=404, detail="工作流未找到")
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    
+    # Ensure the workflow has the required fields with proper types
+    workflow['id'] = str(workflow['id']) if workflow.get('id') else None
+    workflow['user_id'] = str(workflow['user_id']) if workflow.get('user_id') else None
+    workflow['data'] = workflow.get('data', {})
+    workflow['nodes'] = workflow.get('nodes', [])
+    workflow['edges'] = workflow.get('edges', [])
+    
     return workflow
 
-
-@router.delete("/{workflow_id}")
+@router.delete("/{workflow_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_workflow_endpoint(
-    workflow_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    workflow_id: UUID,
+    current_user: UserResponse = Depends(get_current_user),
 ):
     """
-    删除工作流
+    Delete workflow
     """
-    result = delete_workflow(db, workflow_id, current_user.id)
+    result = delete_workflow(workflow_id, current_user.id)
     if not result:
-        raise HTTPException(status_code=404, detail="工作流未找到")
-    return {"message": "工作流已删除"}
-
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
 @router.post("/{workflow_id}/calculate-carbon-footprint")
 async def calculate_carbon_footprint_endpoint(
-    workflow_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    workflow_id: UUID,
+    current_user: UserResponse = Depends(get_current_user),
 ):
     """
-    计算工作流的碳足迹
+    Calculate workflow's carbon footprint
     """
-    workflow = get_workflow_by_id(db, workflow_id, current_user.id)
+    workflow = get_workflow_by_id(workflow_id, current_user.id)
     if not workflow:
-        raise HTTPException(status_code=404, detail="工作流未找到")
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
-    total_carbon_footprint = calculate_carbon_footprint(db, workflow_id)
+    total_carbon_footprint = calculate_carbon_footprint(workflow_id)
     return {
-        "workflow_id": workflow_id,
+        "workflow_id": str(workflow_id),
         "total_carbon_footprint": total_carbon_footprint,
     }

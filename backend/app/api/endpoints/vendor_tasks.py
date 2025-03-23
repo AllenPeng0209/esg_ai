@@ -1,175 +1,149 @@
 from datetime import datetime
 from typing import List, Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
 
-from app import models, schemas
 from app.api import deps
+from app.core.supabase import get_supabase_client
+from app.schemas.user import UserResponse
+from app.schemas import VendorTask, VendorTaskCreate, VendorTaskUpdate, VendorTaskSubmit
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[schemas.VendorTask])
+@router.get("/", response_model=List[VendorTask])
 def get_vendor_tasks(
-    db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
-    current_user: models.User = Depends(deps.get_current_user),
+    current_user: UserResponse = Depends(deps.get_current_user),
 ):
-    """獲取所有供應商任務"""
-    vendor_tasks = db.query(models.VendorTask).offset(skip).limit(limit).all()
-    return vendor_tasks
+    """Get all vendor tasks"""
+    supabase = get_supabase_client()
+    response = supabase.table('vendor_tasks').select('*').range(skip, skip + limit).execute()
+    return response.data
 
 
-@router.get("/pending", response_model=List[schemas.VendorTask])
+@router.get("/pending", response_model=List[VendorTask])
 def get_pending_tasks(
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_user),
+    current_user: UserResponse = Depends(deps.get_current_user),
 ):
-    """獲取當前用戶的待處理任務"""
-    # 這裡只是簡單實現，實際應用中可能需要根據用戶權限和關聯進行更複雜的查詢
-    vendor_tasks = (
-        db.query(models.VendorTask).filter(models.VendorTask.status == "pending").all()
-    )
-    return vendor_tasks
+    """Get current user's pending tasks"""
+    supabase = get_supabase_client()
+    response = supabase.table('vendor_tasks').select('*').eq('status', 'pending').execute()
+    return response.data
 
 
-@router.get("/{task_id}", response_model=schemas.VendorTask)
+@router.get("/{task_id}", response_model=VendorTask)
 def get_vendor_task(
-    task_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_user),
+    task_id: UUID,
+    current_user: UserResponse = Depends(deps.get_current_user),
 ):
-    """獲取特定供應商任務"""
-    vendor_task = (
-        db.query(models.VendorTask).filter(models.VendorTask.id == task_id).first()
-    )
-    if not vendor_task:
-        raise HTTPException(status_code=404, detail="供應商任務未找到")
-    return vendor_task
+    """Get specific vendor task"""
+    supabase = get_supabase_client()
+    response = supabase.table('vendor_tasks').select('*').eq('id', str(task_id)).single().execute()
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Vendor task not found")
+    return response.data
 
 
-@router.post(
-    "/", response_model=schemas.VendorTask, status_code=status.HTTP_201_CREATED
-)
+@router.post("/", response_model=VendorTask, status_code=status.HTTP_201_CREATED)
 def create_vendor_task(
-    task: schemas.VendorTaskCreate,
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_user),
+    task: VendorTaskCreate,
+    current_user: UserResponse = Depends(deps.get_current_user),
 ):
-    """創建新的供應商任務"""
-    # 檢查工作流是否存在
-    workflow = (
-        db.query(models.Workflow).filter(models.Workflow.id == task.workflow_id).first()
-    )
-    if not workflow:
-        raise HTTPException(status_code=404, detail="工作流未找到")
+    """Create new vendor task"""
+    supabase = get_supabase_client()
+    
+    # Check if workflow exists
+    workflow = supabase.table('workflows').select('*').eq('id', str(task.workflow_id)).single().execute()
+    if not workflow.data:
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
-    # 檢查用戶是否有權限創建任務
-    if workflow.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="您沒有權限在此工作流中創建任務")
+    # Check if user has permission to create task
+    if workflow.data['user_id'] != str(current_user.id):
+        raise HTTPException(status_code=403, detail="You don't have permission to create tasks in this workflow")
 
-    # 創建任務
-    vendor_task = models.VendorTask(
-        workflow_id=task.workflow_id,
-        product_id=task.product_id,
-        product_name=task.product_name,
-        vendor=task.vendor,
-        description=task.description,
-        deadline=task.deadline,
-    )
-    db.add(vendor_task)
-    db.commit()
-    db.refresh(vendor_task)
-    return vendor_task
+    # Create task
+    task_data = task.dict()
+    task_data['workflow_id'] = str(task.workflow_id)
+    response = supabase.table('vendor_tasks').insert(task_data).execute()
+    return response.data[0]
 
 
-@router.put("/{task_id}", response_model=schemas.VendorTask)
+@router.put("/{task_id}", response_model=VendorTask)
 def update_vendor_task(
-    task_id: int,
-    task_update: schemas.VendorTaskUpdate,
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_user),
+    task_id: UUID,
+    task_update: VendorTaskUpdate,
+    current_user: UserResponse = Depends(deps.get_current_user),
 ):
-    """更新供應商任務"""
-    vendor_task = (
-        db.query(models.VendorTask).filter(models.VendorTask.id == task_id).first()
-    )
-    if not vendor_task:
-        raise HTTPException(status_code=404, detail="供應商任務未找到")
+    """Update vendor task"""
+    supabase = get_supabase_client()
+    
+    # Get task
+    task = supabase.table('vendor_tasks').select('*').eq('id', str(task_id)).single().execute()
+    if not task.data:
+        raise HTTPException(status_code=404, detail="Vendor task not found")
 
-    # 檢查用戶是否有權限更新任務
-    workflow = (
-        db.query(models.Workflow)
-        .filter(models.Workflow.id == vendor_task.workflow_id)
-        .first()
-    )
-    if workflow and workflow.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="您沒有權限更新此任務")
+    # Check if user has permission to update task
+    workflow = supabase.table('workflows').select('*').eq('id', str(task.data['workflow_id'])).single().execute()
+    if workflow.data and workflow.data['user_id'] != str(current_user.id):
+        raise HTTPException(status_code=403, detail="You don't have permission to update this task")
 
-    # 更新任務
+    # Update task
     update_data = task_update.dict(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(vendor_task, key, value)
+    
+    # Check status and update related fields
+    if task_update.status == "completed" and task.data['status'] != "completed":
+        update_data['updated_at'] = datetime.now().isoformat()
 
-    # 檢查狀態並更新相關字段
-    if task_update.status == "completed" and vendor_task.status != "completed":
-        vendor_task.updated_at = datetime.now()
-
-    db.commit()
-    db.refresh(vendor_task)
-    return vendor_task
+    response = supabase.table('vendor_tasks').update(update_data).eq('id', str(task_id)).execute()
+    return response.data[0]
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_vendor_task(
-    task_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_user),
+    task_id: UUID,
+    current_user: UserResponse = Depends(deps.get_current_user),
 ):
-    """刪除供應商任務"""
-    vendor_task = (
-        db.query(models.VendorTask).filter(models.VendorTask.id == task_id).first()
-    )
-    if not vendor_task:
-        raise HTTPException(status_code=404, detail="供應商任務未找到")
+    """Delete vendor task"""
+    supabase = get_supabase_client()
+    
+    # Get task
+    task = supabase.table('vendor_tasks').select('*').eq('id', str(task_id)).single().execute()
+    if not task.data:
+        raise HTTPException(status_code=404, detail="Vendor task not found")
 
-    # 檢查用戶是否有權限刪除任務
-    workflow = (
-        db.query(models.Workflow)
-        .filter(models.Workflow.id == vendor_task.workflow_id)
-        .first()
-    )
-    if workflow and workflow.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="您沒有權限刪除此任務")
+    # Check if user has permission to delete task
+    workflow = supabase.table('workflows').select('*').eq('id', str(task.data['workflow_id'])).single().execute()
+    if workflow.data and workflow.data['user_id'] != str(current_user.id):
+        raise HTTPException(status_code=403, detail="You don't have permission to delete this task")
 
-    db.delete(vendor_task)
-    db.commit()
+    supabase.table('vendor_tasks').delete().eq('id', str(task_id)).execute()
     return None
 
 
-@router.post("/{task_id}/submit", response_model=schemas.VendorTask)
+@router.post("/{task_id}/submit", response_model=VendorTask)
 def submit_task_result(
-    task_id: int,
-    task_submit: schemas.VendorTaskSubmit,
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_user),
+    task_id: UUID,
+    task_submit: VendorTaskSubmit,
+    current_user: UserResponse = Depends(deps.get_current_user),
 ):
-    """提交供應商任務結果"""
-    vendor_task = (
-        db.query(models.VendorTask).filter(models.VendorTask.id == task_id).first()
-    )
-    if not vendor_task:
-        raise HTTPException(status_code=404, detail="供應商任務未找到")
+    """Submit vendor task result"""
+    supabase = get_supabase_client()
+    
+    # Get task
+    task = supabase.table('vendor_tasks').select('*').eq('id', str(task_id)).single().execute()
+    if not task.data:
+        raise HTTPException(status_code=404, detail="Vendor task not found")
 
-    # 更新任務狀態為已完成
-    vendor_task.status = "completed"
-    vendor_task.updated_at = datetime.now()
-
-    # 這裡可以添加處理提交數據的邏輯，例如更新相關產品節點的數據
-    # 實際應用中可能需要更複雜的處理邏輯
-
-    db.commit()
-    db.refresh(vendor_task)
-    return vendor_task
+    # Update task status to completed
+    update_data = {
+        'status': 'completed',
+        'updated_at': datetime.now().isoformat(),
+        'data': task_submit.data,
+        'comments': task_submit.comments
+    }
+    
+    response = supabase.table('vendor_tasks').update(update_data).eq('id', str(task_id)).execute()
+    return response.data[0]

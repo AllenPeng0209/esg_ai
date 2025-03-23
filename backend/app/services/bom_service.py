@@ -7,7 +7,7 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.models.bom import BOMFile
-from app.schemas.bom import BOMFileCreate, BOMFileUpdate
+from app.schemas.bom import BOMFileCreate
 from app.services.ai_service import standardize_bom
 
 

@@ -1,31 +1,25 @@
 from datetime import datetime
 from typing import Optional
-
-from pydantic import BaseModel
+from uuid import UUID
+from pydantic import BaseModel, ConfigDict
 
 
 class BOMFileBase(BaseModel):
     title: str
+    file_path: str
+    content: str
     file_type: str
+    standardized_content: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BOMFileCreate(BOMFileBase):
-    content: str
-
-
-class BOMFileUpdate(BaseModel):
-    title: Optional[str] = None
-    standardized_content: Optional[str] = None
+    pass
 
 
 class BOMFile(BOMFileBase):
-    id: int
-    user_id: int
-    file_path: str
-    content: str
-    standardized_content: Optional[str] = None
+    id: UUID
+    user_id: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
