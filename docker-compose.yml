@@ -6,9 +6,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # - REACT_APP_API_URL=http://54.234.135.166:8000/api/v1
       - REACT_APP_API_URL=http://localhost:8000/api/v1
-
+      - REACT_APP_SUPABASE_URL=https://idbudhqpealkqvjwfgnj.supabase.co
+      - REACT_APP_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkYnVkaHFwZWFsa3F2andmZ25qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxODA0NDEsImV4cCI6MjA1Nzc1NjQ0MX0.vfo9EcXJ_Sh5b_tbSw0WsqTMY7oKFcVgxcO7G5ReINU
     networks:
       - esg_ai_network
     depends_on:
@@ -18,32 +18,19 @@ services:
   backend:
     build: ./backend
     container_name: esg_ai_backend
-    depends_on:
-      - postgres
-    env_file:
-      - ./backend/.env
+    environment:
+      - SUPABASE_URL
+      - SUPABASE_KEY
+      - DATABASE_URL
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
     networks:
       - esg_ai_network
-    command: python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-  # 数据库服务
-  postgres:
-    image: postgres:14
-    container_name: esg_ai_postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: esg_ai
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - esg_ai_network
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 networks:
   esg_ai_network:

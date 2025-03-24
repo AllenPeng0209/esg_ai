@@ -54,6 +54,8 @@ def get_user_workflows(user_id: UUID, skip: int = 0, limit: int = 100) -> List[d
     # Get workflows
     workflows_response = supabase.table('workflows').select('*').eq('user_id', str(user_id)).range(skip, skip + limit).execute()
     
+    print(f"Workflows response: {workflows_response}")
+    
     results = []
     for workflow in workflows_response.data:
         workflow['id'] = str(workflow['id'])

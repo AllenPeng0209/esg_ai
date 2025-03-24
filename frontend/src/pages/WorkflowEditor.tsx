@@ -461,8 +461,14 @@ const WorkflowEditor: React.FC = () => {
       }
 
       try {
+        // Validate UUID format
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(id)) {
+          throw new Error('Invalid workflow ID format');
+        }
+
         console.log("正在加载工作流数据, ID:", id);
-        const response = await workflowApi.getWorkflowById(parseInt(id));
+        const response = await workflowApi.getWorkflowById(id);
         const workflowData = response.data;
         console.log("获取到的工作流数据:", workflowData);
 
@@ -509,16 +515,17 @@ const WorkflowEditor: React.FC = () => {
         }
 
         message.success("工作流数据加载成功");
-      } catch (error) {
+      } catch (error: any) {
         console.error("加载工作流数据失败:", error);
-        message.error("加载工作流数据失败，请稍后再试");
+        message.error(error.message || "加载工作流数据失败，请稍后再试");
+        navigate('/dashboard'); // Redirect to dashboard on error
       } finally {
         setIsLoading(false);
       }
     };
 
     loadWorkflow();
-  }, [id, setNodes, setEdges]);
+  }, [id, setNodes, setEdges, navigate]);
 
   // 文件系统数据，从常量改为状态
   const [treeData, setTreeData] = useState<TreeNodeType[]>([
@@ -1659,21 +1666,26 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
       );
 
       let response;
-      let workflowId: string | number; // 声明workflowId变量
+      let workflowId: string;
 
       if (id) {
-        // 如果有 ID，更新现有工作流
+        // Validate UUID format when updating
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(id)) {
+          throw new Error('Invalid workflow ID format');
+        }
+        
         console.log(`正在更新工作流 ${id}`);
-        response = await workflowApi.updateWorkflow(parseInt(id), workflowData);
+        response = await workflowApi.updateWorkflow(id, workflowData);
         workflowId = id;
         console.log("工作流更新成功，响应数据:", response.data);
       } else {
-        // 如果没有 ID，创建新工作流
+        // If no ID, create new workflow
         console.log("正在创建新工作流");
         response = await workflowApi.createWorkflow(workflowData);
         workflowId = response.data.id;
         console.log("新工作流创建成功，响应数据:", response.data);
-        // 更新 URL 中的 ID
+        // Update URL with ID
         navigate(`/workflow/${workflowId}`, { replace: true });
       }
 
@@ -1690,6 +1702,8 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
         } else if (error.response.status === 422) {
           errorMessage += ": 数据验证失败，请检查所有必填字段";
         }
+      } else if (error.message) {
+        errorMessage = error.message;
       }
 
       message.error(errorMessage);
@@ -4555,9 +4569,9 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
 
     try {
       // 获取工作流ID
-      const workflowId = parseInt(id || "0");
+      const workflowId = id;
 
-      if (!workflowId || workflowId <= 0) {
+      if (!workflowId) {
         message.error("工作流ID无效");
         return;
       }

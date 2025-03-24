@@ -37,7 +37,6 @@ if database_url.startswith("postgresql://") and not database_url.startswith("pos
 if "sslmode=" not in database_url:
     database_url += "&sslmode=require" if "?" in database_url else "?sslmode=require"
 
-print(f"Using database URL: {database_url}")
 # Set SQLAlchemy URL
 config.set_main_option("sqlalchemy.url", database_url)
 
