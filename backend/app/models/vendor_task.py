@@ -1,25 +1,24 @@
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 
-from app.database import Base
+from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
-class VendorTask(Base):
+class VendorTask(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "vendor_tasks"
 
-    id = Column(Integer, primary_key=True, index=True)
-    workflow_id = Column(Integer, ForeignKey("workflows.id"), nullable=False)
-    product_id = Column(String, nullable=False)  # 產品節點ID
-    product_name = Column(String, nullable=False)  # 產品名稱
-    vendor = Column(String, nullable=False)  # 供應商名稱
-    description = Column(Text, nullable=True)  # 任務描述
+    workflow_id = Column(UUID(as_uuid=True), ForeignKey("workflows.id"), nullable=False)
+    product_id = Column(String, nullable=False)  # Product node ID
+    product_name = Column(String, nullable=False)  # Product name
+    vendor = Column(String, nullable=False)  # Vendor name
+    description = Column(Text)  # Task description
     status = Column(
-        Enum("pending", "completed", "overdue", name="task_status"), default="pending"
-    )  # 任務狀態
-    deadline = Column(DateTime, nullable=True)  # 截止日期
-    created_at = Column(DateTime(timezone=True), server_default=func.now())  # 創建時間
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())  # 更新時間
+        Enum("pending", "completed", "overdue", name="task_status"),
+        default="pending",
+        nullable=False
+    )  # Task status
+    deadline = Column(DateTime(timezone=True))  # Deadline
 
-    # 關聯
+    # Relationships
     workflow = relationship("Workflow", back_populates="vendor_tasks")

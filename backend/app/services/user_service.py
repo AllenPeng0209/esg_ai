@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta
 from typing import Optional
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from app.config import settings
+from app.core.config import settings
 from app.database import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
@@ -47,21 +48,22 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
+    """Get user by email"""
     return db.query(User).filter(User.email == email).first()
 
 
-def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
+def get_user_by_id(db: Session, user_id: UUID) -> Optional[User]:
+    """Get user by ID"""
     return db.query(User).filter(User.id == user_id).first()
 
 
-def create_user(db: Session, user: UserCreate) -> User:
-    hashed_password = get_password_hash(user.password)
+def create_user(db: Session, user_data: UserCreate) -> User:
+    """Create a new user in our database (not Supabase)"""
     db_user = User(
-        email=user.email,
-        username=user.username,
-        hashed_password=hashed_password,
-        full_name=user.full_name,
-        company=user.company,
+        email=user_data.email,
+        full_name=user_data.full_name,
+        company=user_data.company,
+        is_active=True
     )
     db.add(db_user)
     db.commit()
@@ -69,16 +71,13 @@ def create_user(db: Session, user: UserCreate) -> User:
     return db_user
 
 
-def update_user(db: Session, user_id: int, user_data: UserUpdate) -> Optional[User]:
+def update_user(db: Session, user_id: UUID, user_data: UserUpdate) -> Optional[User]:
+    """Update user data"""
     db_user = get_user_by_id(db, user_id)
     if not db_user:
         return None
 
-    update_data = user_data.dict(exclude_unset=True)
-    if "password" in update_data:
-        update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
-
-    for key, value in update_data.items():
+    for key, value in user_data.dict(exclude_unset=True).items():
         setattr(db_user, key, value)
 
     db.commit()

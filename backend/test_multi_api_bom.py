@@ -7,10 +7,11 @@ import os
 import random
 import time
 from typing import Any, Dict, List
-
+import json
+import pandas as pd
 import httpx
 
-from app.config import settings
+from app.core.config import settings
 from app.services.ai_service import standardize_bom
 
 # 设置日志

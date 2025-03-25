@@ -1,4 +1,7 @@
 import axios from "axios";
+import { message } from "antd";
+import { ensureUUID } from "../utils/uuid";
+import { supabase } from '../lib/supabase';
 
 // 创建 axios 实例
 const api = axios.create({
@@ -58,35 +61,112 @@ const sanitizeErrorObject = (error: any) => {
 
 // 请求拦截器
 api.interceptors.request.use(
-  (config) => {
-    // 从 localStorage 获取 token
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    try {
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Debug logging
+      console.log('Current session:', session ? 'exists' : 'null');
+      
+      // If we have a session, use its access token
+      if (session) {
+        config.headers.Authorization = `Bearer ${session.access_token}`;
+        console.log('Added token to request');
+      } else {
+        console.log('No session found for request');
+        // If we're trying to access a protected route without a session, redirect to login
+        if (!config.url?.includes('/auth/')) {
+          window.location.href = '/login';
+        }
+      }
+      
+      return config;
+    } catch (error) {
+      console.error('Error in request interceptor:', error);
+      return config;
     }
-    return config;
   },
   (error) => {
-    // 请求错误，确保返回安全的错误对象
-    return Promise.reject(sanitizeErrorObject(error));
-  },
+    console.error('Request interceptor error:', error);
+    return Promise.reject(error);
+  }
 );
 
 // 响应拦截器
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    // 处理 401 错误（未授权）
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem("token");
-      window.location.href = "/login";
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    console.log('Response error:', error.response?.status);
+
+    // If the error is 401 and we haven't tried to refresh the token yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      console.log('Attempting to refresh session');
+
+      try {
+        // Try to refresh the session
+        const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError) {
+          console.error('Session refresh error:', refreshError);
+          throw refreshError;
+        }
+        
+        if (session) {
+          console.log('Session refreshed successfully');
+          // Retry the original request with the new token
+          originalRequest.headers.Authorization = `Bearer ${session.access_token}`;
+          return api(originalRequest);
+        } else {
+          console.log('No session after refresh');
+          throw new Error('Failed to refresh session');
+        }
+      } catch (refreshError) {
+        console.error('Error refreshing session:', refreshError);
+        // Clear any stored auth state
+        localStorage.removeItem('token');
+        await supabase.auth.signOut();
+        
+        // Redirect to login
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
     }
 
-    // 确保返回的是安全处理过的错误，不包含会导致渲染问题的对象
-    return Promise.reject(sanitizeErrorObject(error));
-  },
+    // Handle other error cases
+    if (error.response) {
+      switch (error.response.status) {
+        case 401:
+          // Only redirect if we've already tried to refresh the token
+          if (originalRequest._retry) {
+            console.log('Authentication failed after token refresh');
+            localStorage.removeItem('token');
+            await supabase.auth.signOut();
+            window.location.href = '/login';
+          }
+          break;
+        case 403:
+          message.error('没有权限执行此操作');
+          break;
+        case 404:
+          message.error('请求的资源不存在');
+          break;
+        case 500:
+          message.error('服务器错误，请稍后重试');
+          break;
+        default:
+          message.error(error.response.data?.detail || '操作失败，请重试');
+      }
+    } else if (error.request) {
+      message.error('网络错误，请检查网络连接');
+    } else {
+      message.error('请求配置错误');
+    }
+    
+    return Promise.reject(error);
+  }
 );
 
 // 登录API调用
@@ -148,54 +228,70 @@ export const userApi = {
 
 // 工作流相关 API
 export const workflowApi = {
-  getWorkflows: (params?: { skip?: number; limit?: number }) => {
-    console.log("調用 getWorkflows API, 參數:", params);
-    return api.get("/workflows", { params }).then((response) => {
-      console.log("getWorkflows API 響應:", response.data);
-      return response;
-    });
+  getWorkflows: (params?: { skip?: number; limit?: number }) => 
+    api.get("/workflows", { params }).then(response => ({
+      ...response,
+      data: response.data.map((workflow: any) => ({
+        ...workflow,
+        id: ensureUUID(workflow.id) || workflow.id, // 尝试格式化为 UUID，如果失败则保留原值
+        user_id: ensureUUID(workflow.user_id) || workflow.user_id
+      }))
+    })),
+
+  getWorkflowById: (id: string) => {
+    const formattedId = ensureUUID(id);
+    if (!formattedId) {
+      return Promise.reject(new Error("无效的工作流ID格式"));
+    }
+    return api.get(`/workflows/${formattedId}`).then(response => ({
+      ...response,
+      data: {
+        ...response.data,
+        id: ensureUUID(response.data.id) || response.data.id,
+        user_id: ensureUUID(response.data.user_id) || response.data.user_id
+      }
+    }));
   },
 
-  getWorkflowById: (id: number) => {
-    console.log("調用 getWorkflowById API, ID:", id);
-    return api.get(`/workflows/${id}`).then((response) => {
-      console.log("getWorkflowById API 響應:", response.data);
-      return response;
-    });
+  createWorkflow: (data: any) => 
+    api.post("/workflows", data).then(response => ({
+      ...response,
+      data: {
+        ...response.data,
+        id: ensureUUID(response.data.id) || response.data.id,
+        user_id: ensureUUID(response.data.user_id) || response.data.user_id
+      }
+    })),
+
+  updateWorkflow: (id: string, data: any) => {
+    const formattedId = ensureUUID(id);
+    if (!formattedId) {
+      return Promise.reject(new Error("无效的工作流ID格式"));
+    }
+    return api.put(`/workflows/${formattedId}`, data).then(response => ({
+      ...response,
+      data: {
+        ...response.data,
+        id: ensureUUID(response.data.id) || response.data.id,
+        user_id: ensureUUID(response.data.user_id) || response.data.user_id
+      }
+    }));
   },
 
-  createWorkflow: (data: any) => {
-    console.log("調用 createWorkflow API, 數據:", data);
-    return api.post("/workflows", data).then((response) => {
-      console.log("createWorkflow API 響應:", response.data);
-      return response;
-    });
+  deleteWorkflow: (id: string) => {
+    const formattedId = ensureUUID(id);
+    if (!formattedId) {
+      return Promise.reject(new Error("无效的工作流ID格式"));
+    }
+    return api.delete(`/workflows/${formattedId}`);
   },
 
-  updateWorkflow: (id: number, data: any) => {
-    console.log("調用 updateWorkflow API, ID:", id, "數據:", data);
-    return api.put(`/workflows/${id}`, data).then((response) => {
-      console.log("updateWorkflow API 響應:", response.data);
-      return response;
-    });
-  },
-
-  deleteWorkflow: (id: number) => {
-    console.log("調用 deleteWorkflow API, ID:", id);
-    return api.delete(`/workflows/${id}`).then((response) => {
-      console.log("deleteWorkflow API 響應:", response.data);
-      return response;
-    });
-  },
-
-  calculateCarbonFootprint: (id: number) => {
-    console.log("調用 calculateCarbonFootprint API, ID:", id);
-    return api
-      .post(`/workflows/${id}/calculate-carbon-footprint`)
-      .then((response) => {
-        console.log("calculateCarbonFootprint API 響應:", response.data);
-        return response;
-      });
+  calculateCarbonFootprint: (id: string) => {
+    const formattedId = ensureUUID(id);
+    if (!formattedId) {
+      return Promise.reject(new Error("无效的工作流ID格式"));
+    }
+    return api.post(`/workflows/${formattedId}/calculate-carbon-footprint`);
   },
 };
 
@@ -220,23 +316,23 @@ export const vendorTaskApi = {
     api.get("/vendor-tasks", { params }),
 
   // 获取单个任务
-  getVendorTaskById: (id: number) => api.get(`/vendor-tasks/${id}`),
+  getVendorTaskById: (id: string) => api.get(`/vendor-tasks/${id}`),
 
   // 创建新任务
   createVendorTask: (data: any) => api.post("/vendor-tasks", data),
 
   // 更新任务
-  updateVendorTask: (id: number, data: any) =>
+  updateVendorTask: (id: string, data: any) =>
     api.put(`/vendor-tasks/${id}`, data),
 
   // 删除任务
-  deleteVendorTask: (id: number) => api.delete(`/vendor-tasks/${id}`),
+  deleteVendorTask: (id: string) => api.delete(`/vendor-tasks/${id}`),
 
   // 获取当前用户的待处理任务
   getCurrentUserPendingTasks: () => api.get("/vendor-tasks/pending"),
 
   // 提交任务结果
-  submitTaskResult: (id: number, data: any) =>
+  submitTaskResult: (id: string, data: any) =>
     api.post(`/vendor-tasks/${id}/submit`, data),
 };
 

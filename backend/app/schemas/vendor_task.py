@@ -1,46 +1,43 @@
 from datetime import datetime
-from typing import List, Optional
-
-from pydantic import BaseModel
+from typing import Dict, Optional
+from uuid import UUID
+from pydantic import BaseModel, ConfigDict
 
 
 class VendorTaskBase(BaseModel):
+    workflow_id: UUID
     product_id: str
     product_name: str
     vendor: str
     description: Optional[str] = None
     deadline: Optional[datetime] = None
+    status: str = "pending"
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class VendorTaskCreate(VendorTaskBase):
-    workflow_id: int
+    pass
 
 
 class VendorTaskUpdate(BaseModel):
     product_name: Optional[str] = None
     vendor: Optional[str] = None
     description: Optional[str] = None
-    status: Optional[str] = None
     deadline: Optional[datetime] = None
+    status: Optional[str] = None
 
-
-class VendorTaskInDB(VendorTaskBase):
-    id: int
-    workflow_id: int
-    status: str
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
-
-
-class VendorTask(VendorTaskInDB):
-    pass
+    model_config = ConfigDict(from_attributes=True)
 
 
 class VendorTaskSubmit(BaseModel):
-    """用於提交供應商任務結果的模式"""
+    data: Dict
+    comments: Optional[str] = None
 
-    data: dict
-    notes: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class VendorTask(VendorTaskBase):
+    id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime] = None

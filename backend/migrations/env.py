@@ -6,33 +6,46 @@ from alembic import context
 from dotenv import load_dotenv
 from sqlalchemy import engine_from_config, pool
 
-# 添加项目根目录到 Python 路径
+# Add project root directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-# 加载环境变量
+# Load environment variables
 load_dotenv()
 
-# 导入 Base 和所有模型
-from app.database import Base
+# Import Base and all models
+from app.models.base import Base
 from app.models.bom import BOMFile
 from app.models.product import Product
 from app.models.user import User
 from app.models.workflow import Workflow, WorkflowEdge, WorkflowNode
+from app.models.vendor_task import VendorTask
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-# 从环境变量获取数据库 URL
-config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL"))
+# Get database URL from environment variables
+database_url = os.getenv("DATABASE_URL")
+if not database_url:
+    raise ValueError("No DATABASE_URL set in environment variables")
+
+# Ensure the URL includes +psycopg2
+if database_url.startswith("postgresql://") and not database_url.startswith("postgresql+psycopg2://"):
+    database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+# Ensure sslmode is set to require
+if "sslmode=" not in database_url:
+    database_url += "&sslmode=require" if "?" in database_url else "?sslmode=require"
+
+# Set SQLAlchemy URL
+config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
+# Add your model's MetaData object here
 target_metadata = Base.metadata
 
 
@@ -67,14 +80,29 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    configuration = config.get_section(config.config_ini_section)
+    configuration["sqlalchemy.url"] = database_url
+    
+    # Update SSL configuration
+    configuration["sqlalchemy.connect_args"] = {
+        "sslmode": "require",
+        "connect_timeout": 30,
+        "application_name": "alembic",
+        "gssencmode": "disable"  # Disable GSSAPI authentication
+    }
+
+    # Use NullPool to avoid connection issues during migrations
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata
+        )
 
         with context.begin_transaction():
             context.run_migrations()

@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
-
-from pydantic import BaseModel
+from typing import Dict, Optional
+from uuid import UUID
+from pydantic import BaseModel, ConfigDict
 
 
 class ProductBase(BaseModel):
@@ -10,29 +10,23 @@ class ProductBase(BaseModel):
     product_type: str
     weight: Optional[float] = None
     dimensions: Optional[str] = None
-    materials: Optional[Dict[str, Any]] = None
+    materials: Optional[Dict] = None
+    carbon_footprint: float = 0.0
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProductCreate(ProductBase):
     pass
 
 
-class ProductUpdate(BaseModel):
+class ProductUpdate(ProductBase):
     name: Optional[str] = None
-    description: Optional[str] = None
     product_type: Optional[str] = None
-    weight: Optional[float] = None
-    dimensions: Optional[str] = None
-    materials: Optional[Dict[str, Any]] = None
-    carbon_footprint: Optional[float] = None
 
 
 class Product(ProductBase):
-    id: int
-    user_id: int
-    carbon_footprint: float
+    id: UUID
+    user_id: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True

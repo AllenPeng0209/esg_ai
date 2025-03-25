@@ -1,77 +1,84 @@
-from typing import Generator
+from typing import Generator, Optional
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
-from sqlalchemy.orm import Session
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from app.config import settings
-from app.database import SessionLocal
-from app.models.user import User
-from app.schemas.token import TokenPayload
-from app.services.user_service import get_user_by_email
+from app.core.supabase import get_supabase_client, get_supabase_admin_client
+from app.schemas.user import UserResponse
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+security = HTTPBearer()
 
-
-def get_db() -> Generator:
+async def get_current_user(
+    token: HTTPAuthorizationCredentials = Depends(security)
+) -> UserResponse:
     """
-    獲取數據庫會話
+    Get current authenticated user from Supabase token
     """
-    db = SessionLocal()
     try:
-        yield db
-    finally:
-        db.close()
-
-
-def get_current_user(
-    db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
-) -> User:
-    """
-    從JWT令牌獲取當前用戶
-    """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="無效的身份憑證",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        # Verify JWT with Supabase
+        supabase = get_supabase_client()
+        
+        try:
+            user_response = supabase.auth.get_user(token.credentials)
+        except Exception as auth_error:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Authentication failed: {str(auth_error)}",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            
+        user = user_response.user
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Get user from Supabase
+        response = supabase.table('users').select('*').eq('id', str(user.id)).execute()
+        return UserResponse(**response.data[0])
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"},
         )
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-        token_data = TokenPayload(sub=email)
-    except JWTError:
-        raise credentials_exception
-
-    user = get_user_by_email(db, email=token_data.sub)
-    if user is None:
-        raise credentials_exception
-
-    return user
-
 
 def get_current_active_user(
-    current_user: User = Depends(get_current_user),
-) -> User:
+    current_user: UserResponse = Depends(get_current_user),
+) -> UserResponse:
     """
-    驗證用戶是否處於活動狀態
+    Verify user is active
     """
     if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="賬戶未激活")
+        raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
-
 
 def get_current_active_superuser(
-    current_user: User = Depends(get_current_active_user),
-) -> User:
+    current_user: UserResponse = Depends(get_current_active_user),
+) -> UserResponse:
     """
-    驗證用戶是否是超級管理員
+    Verify user is superuser
     """
     if not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="權限不足")
+        raise HTTPException(status_code=403, detail="Not enough privileges")
     return current_user
+
+def get_supabase_admin(
+    current_user: UserResponse = Depends(get_current_active_superuser)
+) -> Generator:
+    """
+    Get Supabase admin client for privileged operations
+    """
+    try:
+        client = get_supabase_admin_client()
+        yield client
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Could not initialize Supabase admin client: {str(e)}"
+        )

@@ -1,40 +1,48 @@
-from typing import Optional
-
-from pydantic import BaseModel, EmailStr
+from typing import Optional, Union
+from uuid import UUID
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, validator
 
 
 class UserBase(BaseModel):
     email: EmailStr
-    username: str
     full_name: Optional[str] = None
     company: Optional[str] = None
-    is_active: Optional[bool] = True
-    is_superuser: Optional[bool] = False
+    
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserCreate(UserBase):
+    password: str = Field(..., min_length=6)
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
     password: str
+    
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    username: Optional[str] = None
     full_name: Optional[str] = None
     company: Optional[str] = None
-    password: Optional[str] = None
-    is_active: Optional[bool] = None
+    
+    model_config = ConfigDict(from_attributes=True)
 
 
-class UserInDB(UserBase):
-    id: int
-    hashed_password: str
+class UserResponse(UserBase):
+    id: Union[UUID, str]
+    is_active: bool = True
+    is_superuser: bool = False
+    
+    @validator('id', pre=True)
+    def validate_id(cls, v):
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+    
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
 
-
-class User(UserBase):
-    id: int
-
-    class Config:
-        from_attributes = True
+# Full user model for internal use
+class User(UserResponse):
+    pass
