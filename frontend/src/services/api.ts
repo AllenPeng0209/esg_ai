@@ -258,6 +258,27 @@ export const bomApi = {
 export const aiApi = {
   openaiProxy: (data: any) => api.post('/ai/openai-proxy', data),
   
+  // 碳諮詢AI对话接口
+  carbonConsultingChat: (message: string, history: Array<{role: string, content: string}> = [], workflowData?: any) => {
+    const longTimeoutApi = axios.create({
+      baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1',
+      timeout: 180000, // 3分钟超时
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    longTimeoutApi.interceptors.request.use(function (config) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
+    
+    return longTimeoutApi.post('/ai/carbon-consulting-chat', { message, history, workflow_data: workflowData });
+  },
+  
   standardizeBom: (content: string) => {
     const longTimeoutApi = axios.create({
       baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1',

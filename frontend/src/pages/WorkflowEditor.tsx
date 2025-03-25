@@ -43,6 +43,8 @@ import * as XLSX from 'xlsx';
 import { workflowApi } from '../services/api';
 // 引入dayjs作为日期处理工具
 import type { Dayjs } from 'dayjs';
+// 引入ESG AI对话框组件
+import EsgAiAgent from '../components/EsgAiAgent';
 
 // 声明全局命名空间
 declare namespace moment {
@@ -6189,6 +6191,9 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
           {fileRightClickMenu}
         </div>
       )}
+      
+      {/* ESG AI对话框组件 */}
+      <EsgAiAgent workflowData={{ nodes, edges, selectedNode }} />
       
       {/* BOM AI规范化对话框 */}
       <Modal

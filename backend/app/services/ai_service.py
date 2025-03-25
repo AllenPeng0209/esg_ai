@@ -12,6 +12,7 @@ from app.database import get_db
 from app.schemas.user import User
 from app.api import deps
 import json
+import traceback
 
 # 设置日志
 logging.basicConfig(level=logging.INFO)
@@ -1768,4 +1769,229 @@ async def optimize_disposal_nodes(nodes: List[Dict[str, Any]]):
     except Exception as e:
         logger.error(f"优化处置节点参数时发生错误: {str(e)}")
         raise
+
+# 添加碳咨询AI对话服务函数
+async def carbon_consulting_chat(message: str, history: List[Dict[str, str]] = None, workflow_data: Dict[str, Any] = None) -> Dict[str, str]:
+    """
+    碳咨询AI对话服务
+    
+    参数:
+    - message: 用户输入的消息
+    - history: 对话历史记录列表，每条记录包含 'role' 和 'content' 字段
+    - workflow_data: 工作流数据，包含节点和边的信息
+    
+    返回:
+    - 包含AI响应的字典
+    """
+    logger = logging.getLogger(__name__)
+    logger.info("开始碳咨询AI对话服务")
+    logger.info(f"收到用户消息: {message}")
+    logger.info(f"历史记录数量: {len(history) if history else 0}")
+    
+    if history is None:
+        history = []
+        
+    # 分析工作流数据
+    workflow_context = ""
+    if workflow_data:
+        logger.info("收到工作流数据")
+        logger.info(f"工作流数据键: {workflow_data.keys()}")
+        
+        nodes = workflow_data.get("nodes", [])
+        edges = workflow_data.get("edges", [])
+        workflow_name = workflow_data.get("workflowName", "未命名工作流")
+        
+        logger.info(f"工作流名称: {workflow_name}")
+        logger.info(f"节点数量: {len(nodes)}")
+        logger.info(f"连接数量: {len(edges)}")
+        
+        # 构建工作流上下文
+        workflow_context = f"""
+        当前工作流状态：
+        1. 工作流名称：{workflow_name}
+        2. 节点统计：
+           - 总节点数：{len(nodes)}
+           - 总连接数：{len(edges)}
+        
+        3. 节点详细信息：
+        """
+        
+        # 添加每个节点的详细信息
+        for i, node in enumerate(nodes, 1):
+            node_data = node.get('data', {})
+            node_info = f"""
+           节点 {i}:
+           - ID: {node.get('id', 'N/A')}
+           - 类型: {node.get('type', 'N/A')}
+           - 名称: {node.get('data', {}).get('productName', node.get('data', {}).get('label', 'N/A'))}
+           - 生命周期阶段: {node.get('data', {}).get('lifecycleStage', 'N/A')}
+           - 材料: {node.get('data', {}).get('material', 'N/A')}
+           - 重量: {node.get('data', {}).get('weight', 0)}g
+           - 数量: {node.get('data', {}).get('quantity', 'N/A')}
+           - 单位重量: {node.get('data', {}).get('weight_per_unit', 'N/A')}
+           - 碳排放因子: {node.get('data', {}).get('carbonFactor', 0)} kgCO2e/kg
+           - 碳足迹: {node.get('data', {}).get('carbonFootprint', 0)} kgCO2e
+           - 数据来源: {node.get('data', {}).get('dataSource', 'N/A')}
+           - 不确定性评分: {node.get('data', {}).get('uncertaintyScore', 0)}%
+           - 不确定性因素: {', '.join(node.get('data', {}).get('uncertaintyFactors', [])) if node.get('data', {}).get('uncertaintyFactors') else 'N/A'}
+           - 验证状态: {node.get('data', {}).get('verificationStatus', 'N/A')}
+           - 完成状态: {node.get('data', {}).get('completionStatus', 'N/A')}
+           - AI推理: {node.get('data', {}).get('aiReasoning', 'N/A')}
+           - 供应商: {node.get('data', {}).get('supplier', 'N/A')}
+           - 计算方法: {node.get('data', {}).get('calculationMethod', 'N/A')}
+           - 适用标准: {node.get('data', {}).get('applicableStandard', 'N/A')}
+           
+           # 生产制造阶段特定字段
+           - 能源消耗: {node.get('data', {}).get('energyConsumption', 'N/A')} kWh
+           - 能源类型: {node.get('data', {}).get('energyType', 'N/A')}
+           - 工艺效率: {node.get('data', {}).get('processEfficiency', 'N/A')}%
+           - 废物产生量: {node.get('data', {}).get('wasteGeneration', 'N/A')} kg
+           - 水资源消耗: {node.get('data', {}).get('waterConsumption', 'N/A')} L
+           - 回收材料比例: {node.get('data', {}).get('recycledMaterialPercentage', 'N/A')}%
+           - 生产能力: {node.get('data', {}).get('productionCapacity', 'N/A')} units/time
+           - 设备利用率: {node.get('data', {}).get('machineUtilization', 'N/A')}%
+           - 质量缺陷率: {node.get('data', {}).get('qualityDefectRate', 'N/A')}%
+           - 工艺技术: {node.get('data', {}).get('processTechnology', 'N/A')}
+           - 生产标准: {node.get('data', {}).get('manufacturingStandard', 'N/A')}
+           - 自动化水平: {node.get('data', {}).get('automationLevel', 'N/A')}
+           
+           # 分销和储存阶段特定字段
+           - 运输方式: {node.get('data', {}).get('transportationMode', 'N/A')}
+           - 运输距离: {node.get('data', {}).get('transportationDistance', 'N/A')} km
+           - 起点: {node.get('data', {}).get('startPoint', 'N/A')}
+           - 终点: {node.get('data', {}).get('endPoint', 'N/A')}
+           - 车辆类型: {node.get('data', {}).get('vehicleType', 'N/A')}
+           - 燃料类型: {node.get('data', {}).get('fuelType', 'N/A')}
+           - 燃油效率: {node.get('data', {}).get('fuelEfficiency', 'N/A')} km/L
+           - 装载因子: {node.get('data', {}).get('loadFactor', 'N/A')}%
+           - 是否冷藏: {node.get('data', {}).get('refrigeration', 'N/A')}
+           - 包装材料: {node.get('data', {}).get('packagingMaterial', 'N/A')}
+           - 包装重量: {node.get('data', {}).get('packagingWeight', 'N/A')} kg
+           - 仓库能源消耗: {node.get('data', {}).get('warehouseEnergy', 'N/A')} kWh
+           - 储存时间: {node.get('data', {}).get('storageTime', 'N/A')} days
+           - 储存条件: {node.get('data', {}).get('storageConditions', 'N/A')}
+           - 分销网络: {node.get('data', {}).get('distributionNetwork', 'N/A')}
+           - AI推荐: {node.get('data', {}).get('aiRecommendation', 'N/A')}
+           
+           # 产品使用阶段特定字段
+           - 产品寿命: {node.get('data', {}).get('lifespan', 'N/A')} years
+           - 每次使用能源消耗: {node.get('data', {}).get('energyConsumptionPerUse', 'N/A')} kWh
+           - 每次使用水资源消耗: {node.get('data', {}).get('waterConsumptionPerUse', 'N/A')} L
+           - 消耗品: {node.get('data', {}).get('consumablesUsed', 'N/A')}
+           - 消耗品重量: {node.get('data', {}).get('consumablesWeight', 'N/A')} kg
+           - 使用频率: {node.get('data', {}).get('usageFrequency', 'N/A')} 次/年
+           - 维护频率: {node.get('data', {}).get('maintenanceFrequency', 'N/A')} 次/年
+           - 维修率: {node.get('data', {}).get('repairRate', 'N/A')}%
+           - 用户行为影响: {node.get('data', {}).get('userBehaviorImpact', 'N/A')}
+           - 效率降级率: {node.get('data', {}).get('efficiencyDegradation', 'N/A')}%/年
+           - 待机能耗: {node.get('data', {}).get('standbyEnergyConsumption', 'N/A')} kWh
+           - 使用地点: {node.get('data', {}).get('usageLocation', 'N/A')}
+           - 使用模式: {node.get('data', {}).get('usagePattern', 'N/A')}
+           
+           # 废弃处置阶段特定字段
+           - 回收率: {node.get('data', {}).get('recyclingRate', 'N/A')}%
+           - 填埋比例: {node.get('data', {}).get('landfillPercentage', 'N/A')}%
+           - 焚烧比例: {node.get('data', {}).get('incinerationPercentage', 'N/A')}%
+           - 堆肥比例: {node.get('data', {}).get('compostPercentage', 'N/A')}%
+           - 重复使用比例: {node.get('data', {}).get('reusePercentage', 'N/A')}%
+           - 有害废物含量: {node.get('data', {}).get('hazardousWasteContent', 'N/A')}%
+           - 生物降解性: {node.get('data', {}).get('biodegradability', 'N/A')}%
+           - 处置能源回收: {node.get('data', {}).get('disposalEnergyRecovery', 'N/A')} kWh/kg
+           - 到处置设施运输距离: {node.get('data', {}).get('transportToDisposal', 'N/A')} km
+           - 处置方法: {node.get('data', {}).get('disposalMethod', 'N/A')}
+           - 生命周期末端处理: {node.get('data', {}).get('endOfLifeTreatment', 'N/A')}
+           - 回收效率: {node.get('data', {}).get('recyclingEfficiency', 'N/A')}%
+           - 拆卸难度: {node.get('data', {}).get('dismantlingDifficulty', 'N/A')}
+            """
+            workflow_context += node_info
+            
+            # 计算总碳足迹
+            total_carbon = sum(float(node.get('data', {}).get('carbonFootprint', 0)) for node in nodes)
+            workflow_context += f"""
+            
+            4. 碳足迹统计：
+               - 总碳足迹：{total_carbon:.2f} kgCO2e
+            """
+    else:
+        logger.warning("未收到工作流数据")
+    
+    # 系统提示，定义AI助手的角色和知识范围
+    system_prompt = f"""
+    你是一个专业的碳排放和ESG顾问AI助手，名为"碳諮詢助手"。你擅长解答关于:
+    1. 产品生命周期碳足迹分析和计算
+    2. 碳减排策略和方法
+    3. ESG(环境、社会和公司治理)相关问题
+    4. 碳中和和净零排放路径规划
+    5. 可持续发展和绿色供应链
+    6. 碳交易和碳市场
+    7. 环境相关法规和标准
+    
+    {workflow_context}
+    
+    当用户提出问题时，请基于当前工作流状态提供专业、准确且实用的建议。重点关注：
+    1. 缺失的生命周期阶段及其重要性
+    2. 推荐当前缺失数据该去找公司的哪个单位获取, 并且给出推荐理由
+    3. 每个节点的碳足迹计算是否合理
+    4. 数据来源的可靠性和不确定性
+    5. 需要人工验证的节点及其原因
+    6. 可以优化的节点和优化方向
+    7. 整体碳足迹的优化建议
+    
+    如果问题超出你的专业范围，请诚实地表明并建议用户咨询相关专家。
+    
+    在回答与碳足迹计算相关的问题时，请考虑以下要点:
+    1. 碳足迹计算通常考虑产品全生命周期的排放
+    2. 不同生命周期阶段(原材料、生产制造、分销、使用、废弃处置)有不同的排放特点
+    3. 数据的准确性和可靠性对计算结果有重要影响
+    4. 碳足迹计算应遵循国际标准如ISO 14067、PAS 2050或GHG Protocol
+    
+    请用专业且通俗易懂的语言回答，避免使用过于技术性的术语，除非用户明确表示想要深入了解。
+    """
+    
+    logger.info("准备发送给AI的消息")
+    logger.info(f"系统提示长度: {len(system_prompt)}")
+    
+    # 准备发送给OpenAI的消息格式
+    messages = [{"role": "system", "content": system_prompt}]
+    
+    # 添加历史对话记录
+    for msg in history:
+        role = msg.get("role", "")
+        content = msg.get("content", "")
+        
+        if role and content and role in ["user", "assistant"]:
+            messages.append({"role": role, "content": content})
+    
+    # 添加当前用户消息
+    messages.append({"role": "user", "content": message})
+    
+    logger.info(f"总消息数量: {len(messages)}")
+    
+    try:
+        # 调用OpenAI API
+        logger.info("开始调用AI API")
+        response = await call_ai_service_api(
+            messages=messages,
+            temperature=0.7,  # 使用略高的温度以产生更自然的回答
+            max_tokens=2000
+        )
+        
+        # 提取AI回复
+        ai_response = response.get("choices", [{}])[0].get("message", {}).get("content", "")
+        
+        if not ai_response:
+            logger.warning("AI未生成回复")
+            ai_response = "抱歉，我无法生成回复。请稍后再试。"
+        else:
+            logger.info(f"AI回复长度: {len(ai_response)}")
+        
+        return {"response": ai_response}
+        
+    except Exception as e:
+        logger.error(f"碳咨询AI对话生成失败: {str(e)}")
+        logger.error(traceback.format_exc())
+        
+        # 失败时返回友好错误消息
+        fallback_response = "抱歉，我当前遇到了技术问题，无法正常回答您的问题。请稍后再试。"
+        return {"response": fallback_response}
 

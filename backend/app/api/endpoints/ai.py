@@ -16,10 +16,53 @@ from app.services.ai_service import (
     optimize_manufacturing_nodes,
     optimize_usage_nodes,
     optimize_disposal_nodes,
-    optimize_raw_material_nodes
+    optimize_raw_material_nodes,
+    carbon_consulting_chat
 )
 
 router = APIRouter()
+
+@router.post("/carbon-consulting-chat")
+async def carbon_consulting_chat_endpoint(
+    request: Dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    碳諮詢AI对话接口
+    
+    接受:
+    - message: 用户当前消息
+    - history: 对话历史记录
+    - workflow_data: 工作流数据
+    
+    返回:
+    - response: AI回复内容
+    """
+    try:
+        message = request.get("message", "")
+        history = request.get("history", [])
+        workflow_data = request.get("workflow_data")
+        
+        if not message:
+            raise ValueError("消息内容不能为空")
+        
+        # 调用服务层函数处理对话
+        result = await carbon_consulting_chat(message=message, history=history, workflow_data=workflow_data)
+        return result
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        
+        # 返回友好的错误信息，并提供默认回复
+        fallback_response = "抱歉，我当前遇到了技术问题，无法正常回答您的问题。请稍后再试。"
+        
+        # 在开发环境可以返回详细错误，生产环境返回友好消息
+        if isinstance(e, ValueError):
+            return {"response": str(e)}
+        else:
+            return {"response": fallback_response}
 
 @router.post("/openai-proxy")
 async def openai_proxy(
@@ -112,7 +155,8 @@ async def match_carbon_factors_endpoint(
             
             # 確保所有節點都有lifecycleStage字段
             if 'lifecycleStage' not in node or not node['lifecycleStage']:
-                node['lifecycleStage'] = '原材料'
+                # 从 node.data 中获取 lifecycleStage
+                node['lifecycleStage'] = node.get("data", {}).get("lifecycleStage", "原材料")
                 
         updated_nodes = await match_carbon_factors(nodes)
         
@@ -293,7 +337,8 @@ async def optimize_raw_material(
             processed_node['weight'] = 0
             
         if 'lifecycleStage' not in processed_node:
-            processed_node['lifecycleStage'] = '原材料'
+            # 从 node.data 中获取 lifecycleStage
+            processed_node['lifecycleStage'] = processed_node.get("data", {}).get("lifecycleStage", "原材料")
             
         # 调用优化函数，传入完整的节点数据
         optimized_nodes = await optimize_raw_material_nodes([processed_node])

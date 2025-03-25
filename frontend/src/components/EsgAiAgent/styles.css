@@ -1,0 +1,132 @@
+.esg-ai-agent {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1000;
+}
+
+.esg-ai-agent-button {
+  width: 48px;
+  height: 48px;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.esg-ai-agent-drawer .ant-drawer-header {
+  padding: 10px 16px;
+}
+
+.esg-ai-agent-drawer .ant-drawer-body {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 55px); /* 抽屉标题高度 */
+  position: relative; /* 为定位resize-handle */
+}
+
+/* 抽屉标题行，包含缩放按钮 */
+.drawer-header-with-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+/* 标题栏控制按钮区域 */
+.drawer-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 缩放按钮样式 */
+.drawer-header-with-actions .ant-btn {
+  margin-left: 4px;
+  padding: 2px 8px;
+}
+
+/* 抽屉调整大小时的过渡效果 */
+.esg-ai-agent-drawer .ant-drawer-content-wrapper {
+  transition: width 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: width; /* 優化性能 */
+}
+
+/* 禁用调整大小时的过渡效果 */
+.esg-ai-agent-drawer.resizing .ant-drawer-content-wrapper {
+  transition: none !important;
+}
+
+/* 重新實現的拖拽手柄樣式 */
+.drawer-resize-handle {
+  position: fixed;
+  top: 0; 
+  left: 0; /* 會動態設置 */
+  width: 20px;
+  height: 100%; /* 會動態設置 */
+  cursor: ew-resize !important;
+  z-index: 1001;
+  background-color: transparent;
+  transition: background-color 0.2s;
+  pointer-events: auto !important;
+}
+
+.drawer-resize-handle:hover {
+  background-color: rgba(24, 144, 255, 0.15);
+}
+
+/* 拖拽條樣式 */
+.resize-handle-bar {
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  margin-top: -35px;
+  height: 70px;
+  width: 4px;
+  background-color: rgba(24, 144, 255, 0.6);
+  border-radius: 3px;
+  pointer-events: none;
+  transition: opacity 0.2s, box-shadow 0.2s;
+}
+
+/* 懸停效果 */
+.drawer-resize-handle:hover .resize-handle-bar {
+  background-color: rgba(24, 144, 255, 0.8);
+  box-shadow: 0 0 8px rgba(24, 144, 255, 0.6);
+}
+
+/* 拖拽效果 */
+body.resizing .drawer-resize-handle {
+  background-color: rgba(24, 144, 255, 0.15);
+}
+
+body.resizing .resize-handle-bar {
+  background-color: rgba(24, 144, 255, 0.8);
+  box-shadow: 0 0 10px rgba(24, 144, 255, 0.6);
+}
+
+/* 全局拖拽狀態 */
+body.resizing {
+  cursor: ew-resize !important;
+  user-select: none !important;
+}
+
+body.resizing * {
+  pointer-events: none;
+}
+
+body.resizing .drawer-resize-handle {
+  pointer-events: auto !important;
+}
+
+/* 响应式调整 */
+@media screen and (max-width: 768px) {
+  .esg-ai-agent-drawer {
+    width: 100% !important;
+  }
+  
+  .drawer-resize-handle {
+    display: none; /* 在移动设备上隐藏调整大小柄 */
+  }
+} 
