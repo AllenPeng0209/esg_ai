@@ -1,36 +1,65 @@
 services:
-  # 前端服务
+  # Frontend service
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=${REACT_APP_API_URL}
+        - REACT_APP_SUPABASE_URL=${REACT_APP_SUPABASE_URL}
+        - REACT_APP_SUPABASE_ANON_KEY=${REACT_APP_SUPABASE_ANON_KEY}
+        - NODE_ENV=${NODE_ENV}
     container_name: esg_ai_frontend
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_API_URL=http://localhost:8000/api/v1
-      - REACT_APP_SUPABASE_URL=https://idbudhqpealkqvjwfgnj.supabase.co
-      - REACT_APP_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkYnVkaHFwZWFsa3F2andmZ25qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxODA0NDEsImV4cCI6MjA1Nzc1NjQ0MX0.vfo9EcXJ_Sh5b_tbSw0WsqTMY7oKFcVgxcO7G5ReINU
+      - NODE_ENV=${NODE_ENV}
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
+      - REACT_APP_SUPABASE_URL=${REACT_APP_SUPABASE_URL}
+      - REACT_APP_SUPABASE_ANON_KEY=${REACT_APP_SUPABASE_ANON_KEY}
+      - CI=true
+      - DISABLE_ESLINT_PLUGIN=true
+    volumes:
+      - ./frontend:/app
+      - ./frontend/node_modules:/app/node_modules
     networks:
       - esg_ai_network
     depends_on:
       - backend
 
-  # 后端服务
+  # Backend service
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: esg_ai_backend
+    env_file: .env
     environment:
-      - SUPABASE_URL
-      - SUPABASE_KEY
-      - DATABASE_URL
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - BACKEND_CORS_ORIGINS=["*"]
+      - API_V1_STR=/api/v1
+      - PROJECT_NAME=ESG AI Platform
+      - ACCESS_TOKEN_EXPIRE_MINUTES=10080
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
     networks:
       - esg_ai_network
-    command: >
-      sh -c "alembic upgrade head &&
-             python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    tty: true
+    stdin_open: true
 
 networks:
   esg_ai_network:

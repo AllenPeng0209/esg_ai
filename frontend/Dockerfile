@@ -2,17 +2,32 @@ FROM node:16-alpine
 
 WORKDIR /app
 
-# 复制 package.json 和 package-lock.json
+# Copy package files
 COPY package*.json ./
 
-# 安装依赖
+# Install dependencies from package.json
 RUN npm install
 
-# 复制所有文件
+# Copy source code
 COPY . .
 
-# 暴露端口
+# Create .env file from environment variables
+ARG REACT_APP_API_URL
+ARG REACT_APP_SUPABASE_URL
+ARG REACT_APP_SUPABASE_ANON_KEY
+ARG NODE_ENV
+
+# Create .env file
+RUN echo "REACT_APP_API_URL=$REACT_APP_API_URL" > .env && \
+    echo "REACT_APP_SUPABASE_URL=$REACT_APP_SUPABASE_URL" >> .env && \
+    echo "REACT_APP_SUPABASE_ANON_KEY=$REACT_APP_SUPABASE_ANON_KEY" >> .env && \
+    echo "NODE_ENV=$NODE_ENV" >> .env
+
+# Build TypeScript code
+RUN npm run build
+
+# Expose port
 EXPOSE 3000
 
-# 启动应用
+# Start the application
 CMD ["npm", "start"]
