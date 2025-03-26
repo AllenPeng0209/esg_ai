@@ -981,22 +981,22 @@ body.resizing {
   }
 }
 
-/* 优化AI总结模块样式，使其作为浮动元素 */
+/* AI总结模块样式 */
 .ai-summary-module {
   margin: 0;
   background-color: #ffffff;
-  border-radius: 0 8px 8px 0;
-  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   transition: all 0.3s ease;
-  border: 1px solid #e8e8e8;
-  border-left: none;
   width: 350px;
-
+  max-height: 80vh; /* 设置最大高度为视口高度的80% */
+  display: flex;
+  flex-direction: column;
 }
 
 .ai-summary-module.expanded {
-  max-height: 1000px;
+  max-height: 80vh; /* 展开时保持最大高度 */
 }
 
 .ai-summary-module.collapsed {
@@ -1007,11 +1007,12 @@ body.resizing {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 12px 16px;
   background-color: #f0f7ff;
   cursor: pointer;
   transition: background-color 0.2s;
   border-bottom: 1px solid #e6f0ff;
+  flex-shrink: 0; /* 防止头部被压缩 */
 }
 
 .ai-summary-header:hover {
@@ -1026,52 +1027,105 @@ body.resizing {
 }
 
 .ai-summary-content {
-  padding: 12px;
+  padding: 16px;
+  overflow-y: auto; /* 添加垂直滚动 */
+  flex: 1; /* 让内容区域占据剩余空间 */
+  min-height: 0; /* 确保flex子元素可以正确滚动 */
 }
 
-.summary-item {
-  margin-bottom: 12px;
+/* 总分展示区样式 */
+.summary-score-section {
+  text-align: center;
+  padding: 16px 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.summary-item:last-child {
-  margin-bottom: 0;
+.total-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.summary-label {
-  font-size: 13px;
+.score-circle {
+  font-size: 48px;
+  font-weight: bold;
+  line-height: 1;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.score-unit {
+  font-size: 16px;
+  position: absolute;
+  top: 8px;
+  right: -24px;
+}
+
+.score-label {
+  font-size: 14px;
   color: #666;
-  margin-bottom: 4px;
-  font-weight: 500;
+  margin-bottom: 8px;
 }
 
-.missing-stages {
-  margin-top: 4px;
+
+/* 主容器样式 */
+.score-details-collapse {
+  margin-top: 16px;
 }
 
-.stage-list {
-  margin-top: 6px;
+/* 面板标题样式 */
+.score-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+/* 面板内容样式 */
+.score-detail-content {
+  padding: 16px;
+}
+
+/* 评分总结区域样式 */
+.score-summary {
+  margin: 16px 0;
+  padding: 16px;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+/* 评分项样式 */
+.score-item {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0;
+}
+
+/* 优化节点列表样式 */
+.optimization-nodes {
+  margin-top: 16px;
+}
+
+/* 单个节点项样式 */
+.node-item {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+}
+
+/* 节点详情样式 */
+.node-details {
+  font-size: 14px;
+}
+
+/* 缺失字段标签样式 */
+.missing-fields {
+  margin-top: 8px;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 8px;
 }
 
-.optimization-target {
-  background-color: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 4px;
-  padding: 6px 8px;
-  margin-top: 4px;
-}
 
-.optimization-target button {
-  padding: 0;
-  color: #1890ff;
-  font-weight: 500;
-}
-
-.optimization-reason {
-  font-size: 12px;
-  color: #888;
-  margin-top: 4px;
-  font-style: italic;
-} 

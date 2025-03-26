@@ -18,7 +18,8 @@ console.error = function(...args) {
     return;
   }
   
-  originalError.apply(console, args);
+    // originalError.apply(console, args);
+    
 };
 
 // 修补Ant Design消息API
