@@ -39,7 +39,7 @@ class WorkflowNodeBase(BaseModel):
 class WorkflowNodeCreate(WorkflowNodeBase):
     workflow_id: Union[UUID, str]
 
-    @validator('workflow_id')
+    @validator("workflow_id")
     def validate_workflow_id(cls, v):
         if isinstance(v, UUID):
             return str(v)
@@ -66,7 +66,7 @@ class WorkflowEdgeBase(BaseModel):
 class WorkflowEdgeCreate(WorkflowEdgeBase):
     workflow_id: Union[UUID, str]
 
-    @validator('workflow_id')
+    @validator("workflow_id")
     def validate_workflow_id(cls, v):
         if isinstance(v, UUID):
             return str(v)
@@ -85,7 +85,7 @@ class WorkflowNode(WorkflowNodeBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    @validator('id', 'workflow_id')
+    @validator("id", "workflow_id")
     def validate_uuids(cls, v):
         if isinstance(v, UUID):
             return str(v)
@@ -97,7 +97,7 @@ class WorkflowEdge(WorkflowEdgeBase):
     workflow_id: Union[UUID, str]
     created_at: datetime
 
-    @validator('id', 'workflow_id')
+    @validator("id", "workflow_id")
     def validate_uuids(cls, v):
         if isinstance(v, UUID):
             return str(v)
@@ -112,7 +112,7 @@ class Workflow(WorkflowBase):
     nodes: List[WorkflowNode] = []
     edges: List[WorkflowEdge] = []
 
-    @validator('id', 'user_id')
+    @validator("id", "user_id")
     def convert_uuid_to_str(cls, v):
         if isinstance(v, UUID):
             return str(v)
@@ -120,6 +120,4 @@ class Workflow(WorkflowBase):
 
     class Config:
         from_attributes = True
-        json_encoders = {
-            UUID: str
-        }
+        json_encoders = {UUID: str}

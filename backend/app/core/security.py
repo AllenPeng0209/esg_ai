@@ -8,9 +8,8 @@ from app.schemas.user import UserResponse
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
-async def get_current_user(
-    token: str = Depends(oauth2_scheme)
-) -> UserResponse:
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserResponse:
     """
     Get current user from JWT token using Supabase
     """
@@ -25,19 +24,22 @@ async def get_current_user(
         supabase = get_supabase_client()
         user_response = supabase.auth.get_user(token)
         user = user_response.user
-        
+
         if not user:
             raise credentials_exception
-            
+
         # Get user from our users table
-        response = supabase.table('users').select('*').eq('id', user.id).single().execute()
+        response = (
+            supabase.table("users").select("*").eq("id", user.id).single().execute()
+        )
         if not response.data:
             raise credentials_exception
-            
+
         return UserResponse(**response.data)
-        
+
     except Exception as e:
         raise credentials_exception
+
 
 async def get_current_active_user(
     current_user: UserResponse = Depends(get_current_user),
@@ -48,6 +50,7 @@ async def get_current_active_user(
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
 
 async def get_current_active_superuser(
     current_user: UserResponse = Depends(get_current_active_user),

@@ -64,7 +64,9 @@ async def bom_standardize(
         standardized_content = await standardize_bom(content)
         return standardized_content
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"BOM standardization failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"BOM standardization failed: {str(e)}"
+        )
 
 
 @router.post("/calculate-carbon-footprint")
@@ -79,7 +81,9 @@ async def calculate_carbon_footprint(
         carbon_footprint = await calculate_product_carbon_footprint(product_data)
         return {"carbonFootprint": carbon_footprint}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Carbon footprint calculation failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Carbon footprint calculation failed: {str(e)}"
+        )
 
 
 @router.post("/match-carbon-factors")
@@ -135,7 +139,9 @@ async def match_carbon_factors_endpoint(
             match_stats["match_sources"][data_source] += 1
 
         logger.info(f"Carbon factor matching statistics: {match_stats}")
-        logger.info(f"Successfully matched carbon factors for {len(updated_nodes)} nodes")
+        logger.info(
+            f"Successfully matched carbon factors for {len(updated_nodes)} nodes"
+        )
         logger.info(f"Updated nodes: {updated_nodes}")
 
         return {"nodes": updated_nodes, "match_stats": match_stats}
@@ -144,7 +150,9 @@ async def match_carbon_factors_endpoint(
 
         logger.error(f"Carbon factor matching failed: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Carbon factor matching failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Carbon factor matching failed: {str(e)}"
+        )
 
 
 @router.post("/test-openai-proxy", response_model=Dict[str, Any])
@@ -154,7 +162,9 @@ async def test_openai_proxy(request: Dict[str, Any]):
     """
     try:
         response = await call_openai_api(
-            messages=request.get("messages", [{"role": "user", "content": "Test message"}]),
+            messages=request.get(
+                "messages", [{"role": "user", "content": "Test message"}]
+            ),
             model=request.get("model", "gpt-3.5-turbo"),
             temperature=request.get("temperature", 0.7),
             max_tokens=request.get("max_tokens", 500),
@@ -168,7 +178,13 @@ async def test_openai_proxy(request: Dict[str, Any]):
             "detail": {
                 "error_type": type(e).__name__,
                 "mock_response": {
-                    "choices": [{"message": {"content": "This is a mock response because the actual API call failed."}}]
+                    "choices": [
+                        {
+                            "message": {
+                                "content": "This is a mock response because the actual API call failed."
+                            }
+                        }
+                    ]
                 },
             },
         }
@@ -212,7 +228,9 @@ async def lifecycle_document_standardize(
         import traceback
 
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Document standardization failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Document standardization failed: {str(e)}"
+        )
 
 
 @router.post("/decompose-product")
@@ -251,4 +269,6 @@ async def decompose_product(
         import traceback
 
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Product decomposition failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Product decomposition failed: {str(e)}"
+        )

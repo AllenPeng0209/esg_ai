@@ -1,44 +1,34 @@
 FROM python:3.10.6-slim
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PATH="/usr/local/bin:$PATH"
+ENV OPENSEARCH_HOST=opensearch
+ENV OPENSEARCH_PORT=9200
+ENV OPENSEARCH_USER=admin
+ENV OPENSEARCH_PASSWORD=admin
+ENV OPENSEARCH_INDEX=ecoinvent
+ENV CSV_PATH=/app/opensearch/data/ecoinvent.csv
 
+# Set working directory
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    build-essential \
-    libpq-dev \
+RUN apt-get update && apt-get install -y \
     curl \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and setup files
-COPY requirements.txt setup.py ./
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Python dependencies
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt && \
-    pip install -e .
-
-# Copy startup script and make it executable
-COPY start.sh ./
-RUN chmod +x start.sh
-
-# Copy application code
+# Copy the rest of the application
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p /app/logs
+# Create directory for OpenSearch data
+RUN mkdir -p /app/opensearch/data
 
-# Add healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Make the startup script executable and fix permissions
+COPY start.sh .
+RUN chmod +x /app/start.sh
 
-EXPOSE 8000
-
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Use sh to run the startup script
+CMD ["sh", "/app/start.sh"]

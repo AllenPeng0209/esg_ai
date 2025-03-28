@@ -514,8 +514,8 @@ const WorkflowReport = () => {
       id: "",
       name: "",
       totalCarbonFootprint: 0,
-      weight: 0
-    }
+      weight: 0,
+    },
   });
 
   useEffect(() => {
@@ -525,13 +525,13 @@ const WorkflowReport = () => {
         // TODO: Replace with actual API call
         const response = await fetch(`/api/v1/workflows/${id}/report`);
         if (!response.ok) {
-          throw new Error('获取报告数据失败');
+          throw new Error("获取报告数据失败");
         }
         const data = await response.json();
         setReportData(data);
       } catch (err) {
-        console.error('获取报告数据失败:', err);
-        setError(err instanceof Error ? err.message : '获取报告数据失败');
+        console.error("获取报告数据失败:", err);
+        setError(err instanceof Error ? err.message : "获取报告数据失败");
       } finally {
         setLoading(false);
       }
@@ -549,15 +549,22 @@ const WorkflowReport = () => {
   const exportReportAsPDF = async () => {
     try {
       // TODO: Implement PDF export functionality
-      console.log('导出报告为PDF...');
+      console.log("导出报告为PDF...");
     } catch (err) {
-      console.error('导出报告失败:', err);
+      console.error("导出报告失败:", err);
     }
   };
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
         <Spin size="large" tip="生成报告中，请稍候..." />
       </div>
     );
@@ -565,7 +572,7 @@ const WorkflowReport = () => {
 
   if (error) {
     return (
-      <div style={{ padding: '24px' }}>
+      <div style={{ padding: "24px" }}>
         <Alert
           message="错误"
           description={error}
@@ -594,21 +601,21 @@ const WorkflowReport = () => {
         <Header className="report-header">
           <Row justify="space-between" align="middle">
             <Col>
-              <Button 
-                icon={<ArrowLeftOutlined />} 
+              <Button
+                icon={<ArrowLeftOutlined />}
                 onClick={goBackToEditor}
                 style={{ marginRight: 16 }}
               >
                 返回编辑器
               </Button>
-              <Title level={4} style={{ display: 'inline-block', margin: 0 }}>
-                {reportData.workflowName || '未命名工作流'} - 碳足迹报告
+              <Title level={4} style={{ display: "inline-block", margin: 0 }}>
+                {reportData.workflowName || "未命名工作流"} - 碳足迹报告
               </Title>
             </Col>
             <Col>
-              <Button 
-                type="primary" 
-                icon={<DownloadOutlined />} 
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
                 onClick={exportReportAsPDF}
               >
                 导出PDF
@@ -650,7 +657,11 @@ const WorkflowReport = () => {
 
           {/* Stage Emissions Section */}
           {Object.keys(stageEmissions).length > 0 && (
-            <Card title="生命周期阶段分析" className="report-section" style={{ marginTop: 24 }}>
+            <Card
+              title="生命周期阶段分析"
+              className="report-section"
+              style={{ marginTop: 24 }}
+            >
               <Row gutter={[24, 24]}>
                 <Col span={12}>
                   <ReactECharts
@@ -660,26 +671,28 @@ const WorkflowReport = () => {
                 </Col>
                 <Col span={12}>
                   <Table
-                    dataSource={Object.entries(stageEmissions).map(([stage, data]) => ({
-                      key: stage,
-                      stage,
-                      carbonFootprint: data.carbonFootprint,
-                      percentage: data.percentage,
-                      nodesCount: data.nodesCount
-                    }))}
+                    dataSource={Object.entries(stageEmissions).map(
+                      ([stage, data]) => ({
+                        key: stage,
+                        stage,
+                        carbonFootprint: data.carbonFootprint,
+                        percentage: data.percentage,
+                        nodesCount: data.nodesCount,
+                      }),
+                    )}
                     columns={[
-                      { title: '生命周期阶段', dataIndex: 'stage' },
-                      { 
-                        title: '碳排放量 (kgCO₂e)',
-                        dataIndex: 'carbonFootprint',
-                        render: (value) => value.toFixed(2)
+                      { title: "生命周期阶段", dataIndex: "stage" },
+                      {
+                        title: "碳排放量 (kgCO₂e)",
+                        dataIndex: "carbonFootprint",
+                        render: (value) => value.toFixed(2),
                       },
                       {
-                        title: '占比 (%)',
-                        dataIndex: 'percentage',
-                        render: (value) => value.toFixed(1)
+                        title: "占比 (%)",
+                        dataIndex: "percentage",
+                        render: (value) => value.toFixed(1),
                       },
-                      { title: '节点数量', dataIndex: 'nodesCount' }
+                      { title: "节点数量", dataIndex: "nodesCount" },
                     ]}
                     pagination={false}
                     size="small"

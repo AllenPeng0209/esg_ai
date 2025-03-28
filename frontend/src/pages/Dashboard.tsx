@@ -138,8 +138,12 @@ const industryTemplates: IndustryTemplate[] = [
 // 生成模拟供应商任务数据的辅助函数
 const generateMockVendorTasks = (workflows: Workflow[]): VendorTask[] => {
   const vendors = ["富士康", "和硕", "广达", "仁宝", "纬创"];
-  const statuses: Array<VendorTask["status"]> = ["pending", "completed", "overdue"];
-  
+  const statuses: Array<VendorTask["status"]> = [
+    "pending",
+    "completed",
+    "overdue",
+  ];
+
   return workflows.flatMap((workflow) => {
     const tasksCount = Math.floor(Math.random() * 3) + 1; // 1-3个任务
     return Array.from({ length: tasksCount }, (_, index) => ({
@@ -149,9 +153,11 @@ const generateMockVendorTasks = (workflows: Workflow[]): VendorTask[] => {
       product_name: `${workflow.name}的组件${index + 1}`,
       vendor: vendors[Math.floor(Math.random() * vendors.length)],
       description: `为${workflow.name}提供组件${index + 1}的碳足迹数据`,
-      deadline: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+      deadline: new Date(
+        Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000,
+      ).toISOString(),
       status: statuses[Math.floor(Math.random() * statuses.length)],
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     }));
   });
 };
@@ -166,12 +172,14 @@ const Dashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [industryFilter, setIndustryFilter] = useState<string>("all");
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
+  const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(
+    null,
+  );
   const [vendorTasks, setVendorTasks] = useState<VendorTask[]>([]);
   const [pendingTasksCount, setPendingTasksCount] = useState<number>(0);
 
   // Simplify navigation without UUID validation
-  const navigateToWorkflow = (id: string, route: 'workflow' | 'report') => {
+  const navigateToWorkflow = (id: string, route: "workflow" | "report") => {
     const formattedId = ensureUUID(id);
     if (!formattedId) {
       message.error("无效的工作流ID格式");
@@ -197,17 +205,21 @@ const Dashboard: React.FC = () => {
       // 工作流数据中的 ID 已经在 API 层被处理为正确的 UUID 格式
       const workflowsWithIndustry = workflowsRes.data.map((workflow: any) => ({
         ...workflow,
-        industry_type: workflow.industry_type || industries[Math.floor(Math.random() * industries.length)]
+        industry_type:
+          workflow.industry_type ||
+          industries[Math.floor(Math.random() * industries.length)],
       }));
 
       setWorkflows(workflowsWithIndustry);
       setProducts(productsRes.data);
-      
+
       // 模拟供应商任务数据
       const mockVendorTasks = generateMockVendorTasks(workflowsWithIndustry);
       setVendorTasks(mockVendorTasks);
-      setPendingTasksCount(mockVendorTasks.filter((task: VendorTask) => task.status === "pending").length);
-
+      setPendingTasksCount(
+        mockVendorTasks.filter((task: VendorTask) => task.status === "pending")
+          .length,
+      );
     } catch (error) {
       console.error("刷新数据失败:", error);
       message.error("获取数据失败，请稍后重试");
@@ -588,13 +600,13 @@ const Dashboard: React.FC = () => {
                 actions={[
                   <Button
                     type="link"
-                    onClick={() => navigateToWorkflow(item.id, 'workflow')}
+                    onClick={() => navigateToWorkflow(item.id, "workflow")}
                   >
                     编辑
                   </Button>,
                   <Button
                     type="link"
-                    onClick={() => navigateToWorkflow(item.id, 'report')}
+                    onClick={() => navigateToWorkflow(item.id, "report")}
                   >
                     查看报告
                   </Button>,

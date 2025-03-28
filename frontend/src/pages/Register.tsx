@@ -1,14 +1,14 @@
-import React from 'react';
-import { Alert, Button, Card, Form, Input, Typography, message } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import { authService, RegisterData } from '../services/auth';
+import React from "react";
+import { Alert, Button, Card, Form, Input, Typography, message } from "antd";
+import { useNavigate } from "react-router-dom";
+import { authService, RegisterData } from "../services/auth";
 
 const { Title } = Typography;
 
 const ERROR_MESSAGES: { [key: string]: string } = {
-  'User already registered': '该邮箱已被注册',
-  'Password too short': '密码长度不足',
-  'Invalid email': '邮箱格式不正确',
+  "User already registered": "该邮箱已被注册",
+  "Password too short": "密码长度不足",
+  "Invalid email": "邮箱格式不正确",
 };
 
 const SafeRegisterForm: React.FC = () => {
@@ -22,11 +22,14 @@ const SafeRegisterForm: React.FC = () => {
 
     try {
       await authService.register(values);
-      message.success('注册成功！请检查邮箱完成验证。');
-      navigate('/login');
+      message.success("注册成功！请检查邮箱完成验证。");
+      navigate("/login");
     } catch (error: any) {
-      console.error('注册失败:', error);
-      const errorMessage = ERROR_MESSAGES[error.message] || error.message || '注册失败，请稍后再试';
+      console.error("注册失败:", error);
+      const errorMessage =
+        ERROR_MESSAGES[error.message] ||
+        error.message ||
+        "注册失败，请稍后再试";
       setError(errorMessage);
       message.error(errorMessage);
     } finally {
@@ -45,8 +48,8 @@ const SafeRegisterForm: React.FC = () => {
         name="email"
         label="邮箱"
         rules={[
-          { required: true, message: '请输入邮箱!' },
-          { type: 'email', message: '请输入有效的邮箱地址!' }
+          { required: true, message: "请输入邮箱!" },
+          { type: "email", message: "请输入有效的邮箱地址!" },
         ]}
       >
         <Input size="large" placeholder="请输入邮箱" />
@@ -56,8 +59,8 @@ const SafeRegisterForm: React.FC = () => {
         name="password"
         label="密码"
         rules={[
-          { required: true, message: '请输入密码!' },
-          { min: 6, message: '密码至少6个字符!' }
+          { required: true, message: "请输入密码!" },
+          { min: 6, message: "密码至少6个字符!" },
         ]}
       >
         <Input.Password size="large" placeholder="请输入密码" />
@@ -67,8 +70,8 @@ const SafeRegisterForm: React.FC = () => {
         name="full_name"
         label="姓名"
         rules={[
-          { required: true, message: '请输入姓名!' },
-          { min: 2, message: '姓名至少2个字符!' }
+          { required: true, message: "请输入姓名!" },
+          { min: 2, message: "姓名至少2个字符!" },
         ]}
       >
         <Input size="large" placeholder="请输入姓名" />
@@ -77,9 +80,7 @@ const SafeRegisterForm: React.FC = () => {
       <Form.Item
         name="company"
         label="公司"
-        rules={[
-          { required: true, message: '请输入公司名称!' }
-        ]}
+        rules={[{ required: true, message: "请输入公司名称!" }]}
       >
         <Input size="large" placeholder="请输入公司名称" />
       </Form.Item>
@@ -91,13 +92,19 @@ const SafeRegisterForm: React.FC = () => {
       )}
 
       <Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading} block size="large">
+        <Button
+          type="primary"
+          htmlType="submit"
+          loading={loading}
+          block
+          size="large"
+        >
           注册
         </Button>
       </Form.Item>
 
       <Form.Item>
-        <Button type="link" onClick={() => navigate('/login')} block>
+        <Button type="link" onClick={() => navigate("/login")} block>
           已有账号？立即登录
         </Button>
       </Form.Item>
@@ -107,16 +114,18 @@ const SafeRegisterForm: React.FC = () => {
 
 const Register: React.FC = () => {
   return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      minHeight: '100vh',
-      padding: '20px',
-      background: '#f0f2f5'
-    }}>
-      <Card style={{ width: '100%', maxWidth: 400 }}>
-        <Title level={2} style={{ textAlign: 'center', marginBottom: 32 }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "100vh",
+        padding: "20px",
+        background: "#f0f2f5",
+      }}
+    >
+      <Card style={{ width: "100%", maxWidth: 400 }}>
+        <Title level={2} style={{ textAlign: "center", marginBottom: 32 }}>
           ESG AI 平台注册
         </Title>
         <SafeRegisterForm />

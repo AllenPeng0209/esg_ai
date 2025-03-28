@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
+
 class Workflow(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "workflows"
 
@@ -16,9 +17,15 @@ class Workflow(Base, UUIDMixin, TimestampMixin):
 
     # Relationships
     user = relationship("User", back_populates="workflows")
-    nodes = relationship("WorkflowNode", back_populates="workflow", cascade="all, delete-orphan")
-    edges = relationship("WorkflowEdge", back_populates="workflow", cascade="all, delete-orphan")
-    vendor_tasks = relationship("VendorTask", back_populates="workflow", cascade="all, delete-orphan")
+    nodes = relationship(
+        "WorkflowNode", back_populates="workflow", cascade="all, delete-orphan"
+    )
+    edges = relationship(
+        "WorkflowEdge", back_populates="workflow", cascade="all, delete-orphan"
+    )
+    vendor_tasks = relationship(
+        "VendorTask", back_populates="workflow", cascade="all, delete-orphan"
+    )
 
 
 class WorkflowNode(Base, UUIDMixin, TimestampMixin):
@@ -26,7 +33,9 @@ class WorkflowNode(Base, UUIDMixin, TimestampMixin):
 
     node_id = Column(String, index=True, nullable=False)  # Frontend-generated node ID
     workflow_id = Column(UUID(as_uuid=True), ForeignKey("workflows.id"), nullable=False)
-    node_type = Column(String, nullable=False)  # Node type (product, manufacturing, distribution, usage, disposal)
+    node_type = Column(
+        String, nullable=False
+    )  # Node type (product, manufacturing, distribution, usage, disposal)
     label = Column(String, nullable=False)
     position_x = Column(Float, nullable=False)
     position_y = Column(Float, nullable=False)
