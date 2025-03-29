@@ -9,7 +9,7 @@ anyio==3.7.1
 async-timeout==5.0.1
 attrs==25.3.0
 bcrypt==4.3.0
-black==24.2.0
+black==23.12.1
 certifi==2025.1.31
 cffi==1.17.1
 cfgv==3.4.0
@@ -77,4 +77,3 @@ websockets==14.2
 yarl==1.18.3
 opensearch-py==2.3.1
 urllib3>=1.26.0
-flake8==7.0.0
