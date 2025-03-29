@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 from app.api.api import api_router
 from app.core.config import settings
 from app.core.supabase import initialize_supabase
+from opensearch.api import router as opensearch_router
 
 # Initialize Supabase client
 initialize_supabase()
@@ -31,6 +32,7 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(opensearch_router, prefix="/api/opensearch", tags=["opensearch"])
 
 # Mount static files
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -55,14 +57,14 @@ async def health_check():
             "status": "healthy",
             "version": "1.0.0",
             "supabase_url": settings.SUPABASE_URL,
-            "database_connected": True
+            "database_connected": True,
         }
     except Exception as e:
         return {
             "status": "unhealthy",
             "version": "1.0.0",
             "error": str(e),
-            "database_connected": False
+            "database_connected": False,
         }
 
 

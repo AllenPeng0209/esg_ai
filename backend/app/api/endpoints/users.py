@@ -18,7 +18,7 @@ def get_users(
 ):
     """Get all users (superuser only)"""
     supabase = get_supabase_client()
-    response = supabase.table('users').select('*').range(skip, skip + limit).execute()
+    response = supabase.table("users").select("*").range(skip, skip + limit).execute()
     return response.data
 
 
@@ -37,21 +37,26 @@ def update_current_user(
 ):
     """Update current user"""
     supabase = get_supabase_client()
-    
+
     # Update user data
     update_data = user_update.dict(exclude_unset=True)
-    response = supabase.table('users').update(update_data).eq('id', str(current_user.id)).execute()
-    
+    response = (
+        supabase.table("users")
+        .update(update_data)
+        .eq("id", str(current_user.id))
+        .execute()
+    )
+
     # Also update user metadata in auth if needed
     if user_update.full_name or user_update.company:
         admin = get_supabase_admin_client()
         metadata = {}
         if user_update.full_name:
-            metadata['full_name'] = user_update.full_name
+            metadata["full_name"] = user_update.full_name
         if user_update.company:
-            metadata['company'] = user_update.company
-        admin.auth.admin.update_user_by_id(current_user.id, {'user_metadata': metadata})
-    
+            metadata["company"] = user_update.company
+        admin.auth.admin.update_user_by_id(current_user.id, {"user_metadata": metadata})
+
     return response.data[0]
 
 
@@ -62,7 +67,9 @@ def get_user(
 ):
     """Get user by ID (superuser only)"""
     supabase = get_supabase_client()
-    response = supabase.table('users').select('*').eq('id', str(user_id)).single().execute()
+    response = (
+        supabase.table("users").select("*").eq("id", str(user_id)).single().execute()
+    )
     if not response.data:
         raise HTTPException(status_code=404, detail="User not found")
     return response.data
@@ -76,24 +83,26 @@ def update_user(
 ):
     """Update user (superuser only)"""
     supabase = get_supabase_client()
-    
+
     # Check if user exists
-    user = supabase.table('users').select('*').eq('id', str(user_id)).single().execute()
+    user = supabase.table("users").select("*").eq("id", str(user_id)).single().execute()
     if not user.data:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     # Update user data
     update_data = user_update.dict(exclude_unset=True)
-    response = supabase.table('users').update(update_data).eq('id', str(user_id)).execute()
-    
+    response = (
+        supabase.table("users").update(update_data).eq("id", str(user_id)).execute()
+    )
+
     # Also update user metadata in auth if needed
     if user_update.full_name or user_update.company:
         admin = get_supabase_admin_client()
         metadata = {}
         if user_update.full_name:
-            metadata['full_name'] = user_update.full_name
+            metadata["full_name"] = user_update.full_name
         if user_update.company:
-            metadata['company'] = user_update.company
-        admin.auth.admin.update_user_by_id(user_id, {'user_metadata': metadata})
-    
+            metadata["company"] = user_update.company
+        admin.auth.admin.update_user_by_id(user_id, {"user_metadata": metadata})
+
     return response.data[0]

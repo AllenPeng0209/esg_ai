@@ -462,9 +462,10 @@ const WorkflowEditor: React.FC = () => {
 
       try {
         // Validate UUID format
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const uuidRegex =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (!uuidRegex.test(id)) {
-          throw new Error('Invalid workflow ID format');
+          throw new Error("Invalid workflow ID format");
         }
 
         console.log("正在加载工作流数据, ID:", id);
@@ -518,7 +519,7 @@ const WorkflowEditor: React.FC = () => {
       } catch (error: any) {
         console.error("加载工作流数据失败:", error);
         message.error(error.message || "加载工作流数据失败，请稍后再试");
-        navigate('/dashboard'); // Redirect to dashboard on error
+        navigate("/dashboard"); // Redirect to dashboard on error
       } finally {
         setIsLoading(false);
       }
@@ -1670,11 +1671,12 @@ W-005,电子元件,0.3,6.2,85,5,10,0,0,30,0,0.1,25,专业回收,材料回收,75,
 
       if (id) {
         // Validate UUID format when updating
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const uuidRegex =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (!uuidRegex.test(id)) {
-          throw new Error('Invalid workflow ID format');
+          throw new Error("Invalid workflow ID format");
         }
-        
+
         console.log(`正在更新工作流 ${id}`);
         response = await workflowApi.updateWorkflow(id, workflowData);
         workflowId = id;

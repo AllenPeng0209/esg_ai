@@ -63,7 +63,7 @@ def create_user(db: Session, user_data: UserCreate) -> User:
         email=user_data.email,
         full_name=user_data.full_name,
         company=user_data.company,
-        is_active=True
+        is_active=True,
     )
     db.add(db_user)
     db.commit()

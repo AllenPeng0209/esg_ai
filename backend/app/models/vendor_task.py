@@ -16,7 +16,7 @@ class VendorTask(Base, UUIDMixin, TimestampMixin):
     status = Column(
         Enum("pending", "completed", "overdue", name="task_status"),
         default="pending",
-        nullable=False
+        nullable=False,
     )  # Task status
     deadline = Column(DateTime(timezone=True))  # Deadline
 

@@ -30,7 +30,9 @@ if not database_url:
     raise ValueError("No DATABASE_URL set in environment variables")
 
 # Ensure the URL includes +psycopg2
-if database_url.startswith("postgresql://") and not database_url.startswith("postgresql+psycopg2://"):
+if database_url.startswith("postgresql://") and not database_url.startswith(
+    "postgresql+psycopg2://"
+):
     database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 # Ensure sslmode is set to require
@@ -82,13 +84,13 @@ def run_migrations_online() -> None:
     """
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = database_url
-    
+
     # Update SSL configuration
     configuration["sqlalchemy.connect_args"] = {
         "sslmode": "require",
         "connect_timeout": 30,
         "application_name": "alembic",
-        "gssencmode": "disable"  # Disable GSSAPI authentication
+        "gssencmode": "disable",  # Disable GSSAPI authentication
     }
 
     # Use NullPool to avoid connection issues during migrations
@@ -99,10 +101,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

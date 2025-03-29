@@ -19,7 +19,9 @@ def get_products(
 ):
     """Get all products"""
     supabase = get_supabase_client()
-    response = supabase.table('products').select('*').range(skip, skip + limit).execute()
+    response = (
+        supabase.table("products").select("*").range(skip, skip + limit).execute()
+    )
     return response.data
 
 
@@ -30,7 +32,13 @@ def get_product(
 ):
     """Get specific product"""
     supabase = get_supabase_client()
-    response = supabase.table('products').select('*').eq('id', str(product_id)).single().execute()
+    response = (
+        supabase.table("products")
+        .select("*")
+        .eq("id", str(product_id))
+        .single()
+        .execute()
+    )
     if not response.data:
         raise HTTPException(status_code=404, detail="Product not found")
     return response.data
@@ -43,12 +51,12 @@ def create_product(
 ):
     """Create new product"""
     supabase = get_supabase_client()
-    
+
     # Add user_id to product data
     product_data = product.dict()
-    product_data['user_id'] = str(current_user.id)
-    
-    response = supabase.table('products').insert(product_data).execute()
+    product_data["user_id"] = str(current_user.id)
+
+    response = supabase.table("products").insert(product_data).execute()
     return response.data[0]
 
 
@@ -60,19 +68,32 @@ def update_product(
 ):
     """Update product"""
     supabase = get_supabase_client()
-    
+
     # Get product
-    product = supabase.table('products').select('*').eq('id', str(product_id)).single().execute()
+    product = (
+        supabase.table("products")
+        .select("*")
+        .eq("id", str(product_id))
+        .single()
+        .execute()
+    )
     if not product.data:
         raise HTTPException(status_code=404, detail="Product not found")
 
     # Check if user has permission to update product
-    if product.data['user_id'] != str(current_user.id):
-        raise HTTPException(status_code=403, detail="You don't have permission to update this product")
+    if product.data["user_id"] != str(current_user.id):
+        raise HTTPException(
+            status_code=403, detail="You don't have permission to update this product"
+        )
 
     # Update product
     update_data = product_update.dict(exclude_unset=True)
-    response = supabase.table('products').update(update_data).eq('id', str(product_id)).execute()
+    response = (
+        supabase.table("products")
+        .update(update_data)
+        .eq("id", str(product_id))
+        .execute()
+    )
     return response.data[0]
 
 
@@ -83,15 +104,23 @@ def delete_product(
 ):
     """Delete product"""
     supabase = get_supabase_client()
-    
+
     # Get product
-    product = supabase.table('products').select('*').eq('id', str(product_id)).single().execute()
+    product = (
+        supabase.table("products")
+        .select("*")
+        .eq("id", str(product_id))
+        .single()
+        .execute()
+    )
     if not product.data:
         raise HTTPException(status_code=404, detail="Product not found")
 
     # Check if user has permission to delete product
-    if product.data['user_id'] != str(current_user.id):
-        raise HTTPException(status_code=403, detail="You don't have permission to delete this product")
+    if product.data["user_id"] != str(current_user.id):
+        raise HTTPException(
+            status_code=403, detail="You don't have permission to delete this product"
+        )
 
-    supabase.table('products').delete().eq('id', str(product_id)).execute()
+    supabase.table("products").delete().eq("id", str(product_id)).execute()
     return None

@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic
-revision: str = '001'
+revision: str = "001"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -20,18 +20,21 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # Create UUID extension if not exists
     op.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
-    
+
     # Create task_status enum type
-    op.execute("""
+    op.execute(
+        """
         DO $$ BEGIN
             CREATE TYPE task_status AS ENUM ('pending', 'completed', 'overdue');
         EXCEPTION
             WHEN duplicate_object THEN NULL;
         END $$;
-    """)
-    
+    """
+    )
+
     # Create users table with reference to auth.users
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE users (
             id UUID NOT NULL PRIMARY KEY,
             email VARCHAR NOT NULL,
@@ -43,14 +46,18 @@ def upgrade() -> None:
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
             CONSTRAINT fk_auth_user FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
         )
-    """)
-    
-    op.execute("""
+    """
+    )
+
+    op.execute(
+        """
         CREATE INDEX ix_users_email ON users (email)
-    """)
-    
+    """
+    )
+
     # Create workflows table
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE workflows (
             id UUID NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
             name VARCHAR NOT NULL,
@@ -62,10 +69,12 @@ def upgrade() -> None:
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    
+    """
+    )
+
     # Create workflow_nodes table
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE workflow_nodes (
             id UUID NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
             node_id VARCHAR NOT NULL,
@@ -78,10 +87,12 @@ def upgrade() -> None:
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    
+    """
+    )
+
     # Create workflow_edges table
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE workflow_edges (
             id UUID NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
             edge_id VARCHAR NOT NULL,
@@ -91,10 +102,12 @@ def upgrade() -> None:
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    
+    """
+    )
+
     # Create products table
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE products (
             id UUID NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
             user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -108,10 +121,12 @@ def upgrade() -> None:
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    
+    """
+    )
+
     # Create bom_files table
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE bom_files (
             id UUID NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
             user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -123,10 +138,12 @@ def upgrade() -> None:
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    
+    """
+    )
+
     # Create vendor_tasks table
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE vendor_tasks (
             id UUID NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
             workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
@@ -139,29 +156,34 @@ def upgrade() -> None:
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    
+    """
+    )
+
     # Create indexes
-    op.execute('CREATE INDEX ix_workflows_user_id ON workflows (user_id)')
-    op.execute('CREATE INDEX ix_workflow_nodes_workflow_id ON workflow_nodes (workflow_id)')
-    op.execute('CREATE INDEX ix_workflow_edges_workflow_id ON workflow_edges (workflow_id)')
-    op.execute('CREATE INDEX ix_products_user_id ON products (user_id)')
-    op.execute('CREATE INDEX ix_bom_files_user_id ON bom_files (user_id)')
-    op.execute('CREATE INDEX ix_vendor_tasks_workflow_id ON vendor_tasks (workflow_id)')
+    op.execute("CREATE INDEX ix_workflows_user_id ON workflows (user_id)")
+    op.execute(
+        "CREATE INDEX ix_workflow_nodes_workflow_id ON workflow_nodes (workflow_id)"
+    )
+    op.execute(
+        "CREATE INDEX ix_workflow_edges_workflow_id ON workflow_edges (workflow_id)"
+    )
+    op.execute("CREATE INDEX ix_products_user_id ON products (user_id)")
+    op.execute("CREATE INDEX ix_bom_files_user_id ON bom_files (user_id)")
+    op.execute("CREATE INDEX ix_vendor_tasks_workflow_id ON vendor_tasks (workflow_id)")
 
 
 def downgrade() -> None:
     # Drop tables in reverse order
-    op.execute('DROP TABLE IF EXISTS vendor_tasks CASCADE')
-    op.execute('DROP TABLE IF EXISTS bom_files CASCADE')
-    op.execute('DROP TABLE IF EXISTS products CASCADE')
-    op.execute('DROP TABLE IF EXISTS workflow_edges CASCADE')
-    op.execute('DROP TABLE IF EXISTS workflow_nodes CASCADE')
-    op.execute('DROP TABLE IF EXISTS workflows CASCADE')
-    op.execute('DROP TABLE IF EXISTS users CASCADE')
-    
+    op.execute("DROP TABLE IF EXISTS vendor_tasks CASCADE")
+    op.execute("DROP TABLE IF EXISTS bom_files CASCADE")
+    op.execute("DROP TABLE IF EXISTS products CASCADE")
+    op.execute("DROP TABLE IF EXISTS workflow_edges CASCADE")
+    op.execute("DROP TABLE IF EXISTS workflow_nodes CASCADE")
+    op.execute("DROP TABLE IF EXISTS workflows CASCADE")
+    op.execute("DROP TABLE IF EXISTS users CASCADE")
+
     # Drop enum type
-    op.execute('DROP TYPE IF EXISTS task_status')
-    
+    op.execute("DROP TYPE IF EXISTS task_status")
+
     # Drop UUID extension
-    op.execute('DROP EXTENSION IF EXISTS "uuid-ossp"') 
+    op.execute('DROP EXTENSION IF EXISTS "uuid-ossp"')

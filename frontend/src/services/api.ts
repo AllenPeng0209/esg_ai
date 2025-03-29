@@ -1,7 +1,7 @@
 import axios from "axios";
 import { message } from "antd";
 import { ensureUUID } from "../utils/uuid";
-import { supabase } from '../lib/supabase';
+import { supabase } from "../lib/supabase";
 
 // 创建 axios 实例
 const api = axios.create({
@@ -64,33 +64,35 @@ api.interceptors.request.use(
   async (config) => {
     try {
       // Get current session
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       // Debug logging
-      console.log('Current session:', session ? 'exists' : 'null');
-      
+      console.log("Current session:", session ? "exists" : "null");
+
       // If we have a session, use its access token
       if (session) {
         config.headers.Authorization = `Bearer ${session.access_token}`;
-        console.log('Added token to request');
+        console.log("Added token to request");
       } else {
-        console.log('No session found for request');
+        console.log("No session found for request");
         // If we're trying to access a protected route without a session, redirect to login
-        if (!config.url?.includes('/auth/')) {
-          window.location.href = '/login';
+        if (!config.url?.includes("/auth/")) {
+          window.location.href = "/login";
         }
       }
-      
+
       return config;
     } catch (error) {
-      console.error('Error in request interceptor:', error);
+      console.error("Error in request interceptor:", error);
       return config;
     }
   },
   (error) => {
-    console.error('Request interceptor error:', error);
+    console.error("Request interceptor error:", error);
     return Promise.reject(error);
-  }
+  },
 );
 
 // 响应拦截器
@@ -98,39 +100,42 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    console.log('Response error:', error.response?.status);
+    console.log("Response error:", error.response?.status);
 
     // If the error is 401 and we haven't tried to refresh the token yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      console.log('Attempting to refresh session');
+      console.log("Attempting to refresh session");
 
       try {
         // Try to refresh the session
-        const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
-        
+        const {
+          data: { session },
+          error: refreshError,
+        } = await supabase.auth.refreshSession();
+
         if (refreshError) {
-          console.error('Session refresh error:', refreshError);
+          console.error("Session refresh error:", refreshError);
           throw refreshError;
         }
-        
+
         if (session) {
-          console.log('Session refreshed successfully');
+          console.log("Session refreshed successfully");
           // Retry the original request with the new token
           originalRequest.headers.Authorization = `Bearer ${session.access_token}`;
           return api(originalRequest);
         } else {
-          console.log('No session after refresh');
-          throw new Error('Failed to refresh session');
+          console.log("No session after refresh");
+          throw new Error("Failed to refresh session");
         }
       } catch (refreshError) {
-        console.error('Error refreshing session:', refreshError);
+        console.error("Error refreshing session:", refreshError);
         // Clear any stored auth state
-        localStorage.removeItem('token');
+        localStorage.removeItem("token");
         await supabase.auth.signOut();
-        
+
         // Redirect to login
-        window.location.href = '/login';
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       }
     }
@@ -141,32 +146,32 @@ api.interceptors.response.use(
         case 401:
           // Only redirect if we've already tried to refresh the token
           if (originalRequest._retry) {
-            console.log('Authentication failed after token refresh');
-            localStorage.removeItem('token');
+            console.log("Authentication failed after token refresh");
+            localStorage.removeItem("token");
             await supabase.auth.signOut();
-            window.location.href = '/login';
+            window.location.href = "/login";
           }
           break;
         case 403:
-          message.error('没有权限执行此操作');
+          message.error("没有权限执行此操作");
           break;
         case 404:
-          message.error('请求的资源不存在');
+          message.error("请求的资源不存在");
           break;
         case 500:
-          message.error('服务器错误，请稍后重试');
+          message.error("服务器错误，请稍后重试");
           break;
         default:
-          message.error(error.response.data?.detail || '操作失败，请重试');
+          message.error(error.response.data?.detail || "操作失败，请重试");
       }
     } else if (error.request) {
-      message.error('网络错误，请检查网络连接');
+      message.error("网络错误，请检查网络连接");
     } else {
-      message.error('请求配置错误');
+      message.error("请求配置错误");
     }
-    
+
     return Promise.reject(error);
-  }
+  },
 );
 
 // 登录API调用
@@ -228,14 +233,14 @@ export const userApi = {
 
 // 工作流相关 API
 export const workflowApi = {
-  getWorkflows: (params?: { skip?: number; limit?: number }) => 
-    api.get("/workflows", { params }).then(response => ({
+  getWorkflows: (params?: { skip?: number; limit?: number }) =>
+    api.get("/workflows", { params }).then((response) => ({
       ...response,
       data: response.data.map((workflow: any) => ({
         ...workflow,
         id: ensureUUID(workflow.id) || workflow.id, // 尝试格式化为 UUID，如果失败则保留原值
-        user_id: ensureUUID(workflow.user_id) || workflow.user_id
-      }))
+        user_id: ensureUUID(workflow.user_id) || workflow.user_id,
+      })),
     })),
 
   getWorkflowById: (id: string) => {
@@ -243,24 +248,24 @@ export const workflowApi = {
     if (!formattedId) {
       return Promise.reject(new Error("无效的工作流ID格式"));
     }
-    return api.get(`/workflows/${formattedId}`).then(response => ({
+    return api.get(`/workflows/${formattedId}`).then((response) => ({
       ...response,
       data: {
         ...response.data,
         id: ensureUUID(response.data.id) || response.data.id,
-        user_id: ensureUUID(response.data.user_id) || response.data.user_id
-      }
+        user_id: ensureUUID(response.data.user_id) || response.data.user_id,
+      },
     }));
   },
 
-  createWorkflow: (data: any) => 
-    api.post("/workflows", data).then(response => ({
+  createWorkflow: (data: any) =>
+    api.post("/workflows", data).then((response) => ({
       ...response,
       data: {
         ...response.data,
         id: ensureUUID(response.data.id) || response.data.id,
-        user_id: ensureUUID(response.data.user_id) || response.data.user_id
-      }
+        user_id: ensureUUID(response.data.user_id) || response.data.user_id,
+      },
     })),
 
   updateWorkflow: (id: string, data: any) => {
@@ -268,13 +273,13 @@ export const workflowApi = {
     if (!formattedId) {
       return Promise.reject(new Error("无效的工作流ID格式"));
     }
-    return api.put(`/workflows/${formattedId}`, data).then(response => ({
+    return api.put(`/workflows/${formattedId}`, data).then((response) => ({
       ...response,
       data: {
         ...response.data,
         id: ensureUUID(response.data.id) || response.data.id,
-        user_id: ensureUUID(response.data.user_id) || response.data.user_id
-      }
+        user_id: ensureUUID(response.data.user_id) || response.data.user_id,
+      },
     }));
   },
 

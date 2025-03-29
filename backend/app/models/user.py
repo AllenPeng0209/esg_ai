@@ -9,7 +9,7 @@ class User(Base, TimestampMixin):
     __tablename__ = "users"
 
     # Now id is a foreign key to auth.users table
-    id = Column(UUID(as_uuid=True), ForeignKey('auth.users.id'), primary_key=True)
+    id = Column(UUID(as_uuid=True), ForeignKey("auth.users.id"), primary_key=True)
     email = Column(String, unique=True, index=True, nullable=False)
     full_name = Column(String)
     company = Column(String)

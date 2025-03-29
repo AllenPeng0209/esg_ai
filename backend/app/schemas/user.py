@@ -7,7 +7,7 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
     company: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -18,14 +18,14 @@ class UserCreate(UserBase):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     company: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -33,13 +33,13 @@ class UserResponse(UserBase):
     id: Union[UUID, str]
     is_active: bool = True
     is_superuser: bool = False
-    
-    @validator('id', pre=True)
+
+    @validator("id", pre=True)
     def validate_id(cls, v):
         if isinstance(v, UUID):
             return str(v)
         return v
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
